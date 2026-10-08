@@ -286,10 +286,27 @@ const EN_REPLACEMENTS = [
   ['Preset', 'Preset']
 ].sort((a,b)=>b[0].length-a[0].length);
 
+const EXACT_ONLY = new Set([
+  'An','Aus','Ja','Nein','Name','Pfad','Bild','Typ','Icon','Preset','Text','Titel','Datum','Uhr','Wetter','Design','System','Module','Navigation','Position','Stärke','Standard','Empfohlen','Automatisch','Abbrechen','Speichern','Schließen','Zurück','Löschen','Bearbeiten','Hinzufügen','Entfernen','Person','Personen','Ansicht','Übersicht','Karten','Avatare','Links','Rechts','Mitte'
+]);
+
 export function translateHaloText(value, hass) {
   if (haloLanguage(hass) === DE || value == null) return String(value ?? '');
-  let out = String(value);
-  for (const [de,en] of EN_REPLACEMENTS) out = out.split(de).join(en);
+  const original = String(value);
+  const trimmed = original.trim();
+
+  for (const [de,en] of EN_REPLACEMENTS) {
+    if (EXACT_ONLY.has(de) && trimmed === de) {
+      const start = original.indexOf(trimmed);
+      return original.slice(0, start) + en + original.slice(start + trimmed.length);
+    }
+  }
+
+  let out = original;
+  for (const [de,en] of EN_REPLACEMENTS) {
+    if (EXACT_ONLY.has(de)) continue;
+    out = out.split(de).join(en);
+  }
   return out;
 }
 
