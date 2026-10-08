@@ -2,6 +2,8 @@
 
 Halo UI is a modular visual UI layer for Home Assistant dashboards. It adds a configurable sidebar, animated backgrounds and gradients, glass surfaces, a dashboard header, responsive behavior, state-aware styling and a visual configurator while keeping normal Home Assistant cards usable.
 
+![Halo UI preview](images/halo-ui-preview.svg)
+
 
 ## Features
 
