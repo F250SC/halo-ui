@@ -11,6 +11,26 @@
 
 > Halo UI does **not** replace your dashboard cards. It styles and extends the dashboard around them.
 
+## Contents
+
+- [Highlights](#highlights)
+- [Screenshots](#screenshots)
+- [Quick start](#quick-start)
+- [Installation](#installation)
+- [Add Halo UI to a dashboard](#add-halo-ui-to-a-dashboard)
+- [Main modules](#main-modules)
+- [Responsive behavior](#responsive-behavior)
+- [Weather videos](#weather-videos)
+- [Language support](#language-support)
+- [Configuration safety](#configuration-safety)
+- [Updating](#updating)
+- [Compatibility](#compatibility)
+- [FAQ & troubleshooting](#faq--troubleshooting)
+- [Current release](#current-release)
+- [Project status](#project-status)
+- [Support & bug reports](#support--bug-reports)
+- [License](#license)
+
 ## Highlights
 
 - **One public card:** only `custom:halo-ui` appears in the Home Assistant card picker
@@ -22,18 +42,61 @@
 - **Glass surfaces:** configurable tint, blur, opacity, border, saturation, shadow and highlight
 - **State-aware styling:** separate active colors for lights, switches, media players, climate, vacuum and warnings
 - **Responsive controls:** desktop, tablet and mobile behavior can be configured independently
-- **Card compatibility:** works with standard Home Assistant cards and includes compatibility handling for several popular custom cards
+- **Card compatibility:** works with standard Home Assistant cards and includes conservative compatibility handling for several popular custom cards
 - **Presets:** quick starting points such as Halo Glass, Clear Glass, Dark Glass, Neon, Minimal and Tropical
 - **Diagnostics & maintenance:** configuration export/import, module resets and runtime diagnostics
 - **Languages:** German UI when Home Assistant is German; English for English and as the fallback for all other languages
 
 ## Screenshots
 
-The current preview shows the general design direction:
+### Dashboard with transparent glass surfaces
 
-![Halo UI preview](images/halo-ui-preview.svg)
+![Halo UI forest dashboard](images/screenshots/dashboard-forest.png)
 
-Real dashboard screenshots will be added as Halo UI continues to mature.
+### Animated gradient dashboard
+
+![Halo UI gradient dashboard](images/screenshots/dashboard-purple.png)
+
+### Visual presets and global design
+
+![Halo UI presets](images/screenshots/config-presets.png)
+
+### Gradient Designer
+
+![Halo UI Gradient Designer](images/screenshots/config-gradient-designer.png)
+
+### Responsive header
+
+![Halo UI header](images/screenshots/header-example.png)
+
+### Mobile sidebar
+
+![Halo UI mobile sidebar](images/screenshots/mobile-sidebar.png)
+
+### Combined responsive layout
+
+![Halo UI combined layout](images/screenshots/combined-layout.png)
+
+## Quick start
+
+1. Install Halo UI through HACS as a custom **Dashboard** repository.
+2. Reload Home Assistant when prompted.
+3. Edit a dashboard.
+4. Add the **Halo UI** card.
+5. Save the dashboard.
+6. Enter dashboard edit mode and open the Halo gear button.
+7. Pick a preset or configure the modules individually.
+
+A minimal configuration is:
+
+```yaml
+footer:
+  card:
+    type: custom:halo-ui
+    enabled: true
+    target:
+      mode: current_view
+```
 
 ## Installation
 
@@ -93,17 +156,6 @@ The easiest method is:
 3. Select **Halo UI**.
 4. Save the dashboard.
 5. Use the Halo gear button while the dashboard is in edit mode to open the visual configurator.
-
-A minimal YAML example looks like this:
-
-```yaml
-footer:
-  card:
-    type: custom:halo-ui
-    enabled: true
-    target:
-      mode: current_view
-```
 
 ### Dashboard-wide configuration
 
@@ -291,6 +343,53 @@ Halo UI is built for modern Home Assistant dashboards and currently targets the 
 It includes compatibility logic for standard Home Assistant cards and selected popular custom cards, including examples such as Mushroom, Big Slider, RGB Light and media-control cards.
 
 Complex custom cards are intentionally handled conservatively so Halo styling does not destroy their internal layout.
+
+## FAQ & troubleshooting
+
+### Halo UI does not appear in the card picker
+
+Check that the HACS resource exists and points to:
+
+```text
+/hacsfiles/halo-ui/halo-ui.js
+```
+
+Then reload the browser. A hard refresh may be required after an update.
+
+### I migrated from a manual installation and the UI behaves strangely
+
+Make sure the old manual resource is removed. Do not load both of these at the same time:
+
+```text
+/local/halo-ui/halo-ui.js
+/hacsfiles/halo-ui/halo-ui.js
+```
+
+Your local weather-video files can remain under `/local/halo-ui/halo_weather/`.
+
+### The Halo gear button is missing
+
+The Halo gear button is shown while the Home Assistant dashboard is in edit mode. Leave edit mode and the button should disappear again.
+
+### Weather is not shown
+
+Select a `weather.*` entity in the Halo settings or leave the field empty to allow Halo UI to auto-detect a suitable weather entity.
+
+### A complex custom card looks wrong after enabling Halo surfaces
+
+Use the compatibility settings and switch complex custom cards to outer-frame-only styling. This keeps the card's internal UI untouched while still allowing an outer Halo surface.
+
+### My browser still shows the old version
+
+Reload Home Assistant and use a hard refresh if needed. Browser and frontend resource caching can otherwise keep an older JavaScript version active temporarily.
+
+### Are weather videos included?
+
+No. Weather videos are intentionally optional and are not distributed with Halo UI. You can provide your own local videos and map them to weather conditions.
+
+### Does Halo UI delete or replace my normal cards?
+
+No. Halo UI is designed as a visual/dashboard layer. Its maintenance tools target Halo configuration, not your normal Home Assistant cards and entities.
 
 ## Current release
 
