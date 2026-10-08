@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.44
+
+- Release-cycle test for HACS update delivery.
+- No functional dashboard behavior changed from 0.10.43.
+- Confirms that Halo UI versioning, HACS validation and update distribution work through tagged GitHub releases.
+
+
 ## 0.10.43
 
 - Added centralized internationalization infrastructure.
