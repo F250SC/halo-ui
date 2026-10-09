@@ -1,4 +1,4 @@
-export const HALO_UI_VERSION = "0.10.47";
+export const HALO_UI_VERSION = "0.10.48";
 
 export const HALO_UI_DEFAULTS = {
   type: "custom:halo-ui",
