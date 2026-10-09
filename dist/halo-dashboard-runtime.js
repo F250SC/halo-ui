@@ -253,7 +253,7 @@ function hasLocalHaloOwner(targetView) {
 }
 
 // Apply only to the active view's own shadow root. No user card is rewritten.
-class HaloDashboardAlignment {
+export class HaloDashboardAlignment {
   constructor() { this.view = null; this.style = null; }
   destroy() {
     this.style?.remove();
