@@ -254,51 +254,140 @@ function hasLocalHaloOwner(targetView) {
 
 // Apply only to the active view's own shadow root. No user card is rewritten.
 export class HaloDashboardAlignment {
-  constructor() { this.view = null; this.style = null; }
+  constructor() {
+    this.view = null;
+    this.style = null;
+    this.sectionStyles = new Map();
+    this.observer = null;
+    this.resizeObserver = null;
+    this.frame = 0;
+    this.layout = {};
+    this.onResize = () => this.queue();
+  }
   destroy() {
+    if (this.frame) cancelAnimationFrame(this.frame);
+    this.frame = 0;
+    this.observer?.disconnect();
+    this.resizeObserver?.disconnect();
+    window.removeEventListener("resize", this.onResize);
+    this.observer = null;
+    this.resizeObserver = null;
+    for (const style of this.sectionStyles.values()) style.remove();
+    this.sectionStyles.clear();
     this.style?.remove();
     this.style = null;
     this.view = null;
   }
+  mode() {
+    const l = this.layout;
+    const tablet = Math.max(600, Number(l.tablet_breakpoint) || 1400);
+    const mobile = Math.max(320, Math.min(tablet - 1, Number(l.mobile_breakpoint) || 850));
+    const v = innerWidth <= mobile ? l.dashboard_mobile_alignment
+      : innerWidth <= tablet ? l.dashboard_tablet_alignment : l.dashboard_alignment;
+    return ["left", "center", "right"].includes(v) ? v : "native";
+  }
+  queue() {
+    if (this.frame) return;
+    this.frame = requestAnimationFrame(() => {
+      this.frame = 0;
+      this.alignSections();
+    });
+  }
+  alignSections() {
+    const view = this.view;
+    if (!view?.isConnected || view.localName !== "hui-sections-view") return;
+    const root = view.shadowRoot;
+    const content = root?.querySelector(".content");
+    if (!content) return;
+    const bounds = content.getBoundingClientRect();
+    const mode = this.mode();
+    const seen = new Set();
+    for (const grid of root.querySelectorAll("hui-grid-section")) {
+      const sectionRoot = grid.shadowRoot;
+      const container = sectionRoot?.querySelector(".container");
+      if (!container) continue;
+      seen.add(grid);
+      let style = this.sectionStyles.get(grid);
+      if (!style?.isConnected) {
+        style = document.createElement("style");
+        style.dataset.haloSectionAlignment = "";
+        sectionRoot.appendChild(style);
+        this.sectionStyles.set(grid, style);
+      }
+      if (mode === "native") {
+        style.textContent = "";
+        style.dataset.shift = "0";
+        continue;
+      }
+      const previous = Number(style.dataset.shift || 0);
+      const cards = Array.from(sectionRoot.querySelectorAll("hui-card")).filter(el => {
+        const type = String(el.config?.type || el._config?.type || el.cardConfig?.type || "");
+        if (type === "custom:gap-card") return false;
+        const rect = el.getBoundingClientRect();
+        return rect.width > 10 && rect.height > 10 && getComputedStyle(el).display !== "none";
+      });
+      if (!cards.length) {
+        style.textContent = "";
+        style.dataset.shift = "0";
+        continue;
+      }
+      const rects = cards.map(el => el.getBoundingClientRect());
+      const left = Math.min(...rects.map(r => r.left)) - previous;
+      const right = Math.max(...rects.map(r => r.right)) - previous;
+      const width = right - left;
+      if (!(width > 0 && width <= bounds.width + 1)) {
+        style.textContent = "";
+        style.dataset.shift = "0";
+        continue;
+      }
+      const desired = mode === "left" ? bounds.left
+        : mode === "right" ? bounds.right - width
+        : bounds.left + (bounds.width - width) / 2;
+      const shift = Math.round((desired - left) * 10) / 10;
+      if (Math.abs(shift - previous) < 0.3) continue;
+      style.dataset.shift = String(shift);
+      style.textContent = ".container { transform: translateX(" + shift + "px) !important; }";
+    }
+    for (const [grid, style] of this.sectionStyles) {
+      if (!seen.has(grid) || !grid.isConnected) {
+        style.remove();
+        this.sectionStyles.delete(grid);
+      }
+    }
+  }
   mount(view, layout = {}) {
-    // Keep styling scoped to the currently active Lovelace view.
     if (this.view !== view || !this.style?.isConnected) {
       this.destroy();
       if (!view?.shadowRoot) return;
       this.view = view;
       this.style = document.createElement("style");
-      this.style.setAttribute("data-halo-dashboard-alignment", "");
+      this.style.dataset.haloDashboardAlignment = "";
       view.shadowRoot.appendChild(this.style);
+      this.observer = new MutationObserver(() => this.queue());
+      this.observer.observe(view.shadowRoot, { childList: true, subtree: true });
+      this.resizeObserver = new ResizeObserver(() => this.queue());
+      this.resizeObserver.observe(view);
+      window.addEventListener("resize", this.onResize);
     }
-    const normalize = value => ["left", "center", "right"].includes(value) ? value : "native";
-    const desktop = normalize(layout.dashboard_alignment);
-    const tablet = normalize(layout.dashboard_tablet_alignment);
-    const mobile = normalize(layout.dashboard_mobile_alignment);
-    if ([desktop, tablet, mobile].every(value => value === "native")) {
-      this.style.textContent = "";
-      return;
-    }
-    const tabletBreakpoint = Math.max(600, Number(layout.tablet_breakpoint) || 1400);
-    const mobileBreakpoint = Math.max(320, Math.min(tabletBreakpoint - 1, Number(layout.mobile_breakpoint) || 850));
-    const maxWidth = Math.max(320, Math.min(3000, Number(layout.dashboard_max_width) || 1400));
-    // Sections uses .wrapper for overall content width. Restricting .container
-    // instead can unintentionally alter Home Assistant's internal grid.
-    // Masonry uses #columns for the native flex layout.
-    const selector = view.localName === "hui-sections-view"
-      ? ".wrapper"
-      : view.localName === "hui-masonry-view"
-        ? "#columns"
-        : ".wrapper, #columns";
-    const rule = mode => mode === "native"
-      ? `${selector} { max-width: revert-layer !important; margin-left: revert-layer !important; margin-right: revert-layer !important; }`
-      : `${selector} { box-sizing: border-box !important; width: auto !important; max-width: min(100%, ${maxWidth}px) !important; margin-left: ${mode === "left" ? "0" : "auto"} !important; margin-right: ${mode === "right" ? "0" : "auto"} !important; }`;
-    // Mobile first, then tablet, then desktop with nonoverlapping ranges:
-    // native responsive options inherit HA styles rather than a prior override.
-    this.style.textContent = `
-      @media (min-width: ${tabletBreakpoint + 1}px) { ${desktop === "native" ? "" : rule(desktop)} }
-      @media (min-width: ${mobileBreakpoint + 1}px) and (max-width: ${tabletBreakpoint}px) { ${tablet === "native" ? "" : rule(tablet)} }
-      @media (max-width: ${mobileBreakpoint}px) { ${mobile === "native" ? "" : rule(mobile)} }
-    `;
+    this.layout = layout;
+    const norm = v => ["left", "center", "right"].includes(v) ? v : "native";
+    const desktop = norm(layout.dashboard_alignment);
+    const tablet = norm(layout.dashboard_tablet_alignment);
+    const mobile = norm(layout.dashboard_mobile_alignment);
+    const tb = Math.max(600, Number(layout.tablet_breakpoint) || 1400);
+    const mb = Math.max(320, Math.min(tb - 1, Number(layout.mobile_breakpoint) || 850));
+    const mw = Math.max(320, Math.min(3000, Number(layout.dashboard_max_width) || 1400));
+    const selector = view.localName === "hui-sections-view" ? ".wrapper"
+      : view.localName === "hui-masonry-view" ? "#columns" : ".wrapper, #columns";
+    const rule = mode => mode === "native" ? "" :
+      selector + " { box-sizing:border-box !important; max-width:min(100%," + mw + "px) !important; margin-left:" +
+      (mode === "left" ? "0" : "auto") + " !important; margin-right:" +
+      (mode === "right" ? "0" : "auto") + " !important; }";
+    this.style.textContent =
+      "@media(min-width:" + (tb+1) + "px){" + rule(desktop) + "}" +
+      "@media(min-width:" + (mb+1) + "px) and (max-width:" + tb + "px){" + rule(tablet) + "}" +
+      "@media(max-width:" + mb + "px){" + rule(mobile) + "}";
+    this.queue();
   }
 }
 
