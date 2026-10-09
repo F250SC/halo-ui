@@ -1,0 +1,35 @@
+name: Publish Halo UI v0.10.45
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dist/halo-core.js'
+      - 'dist/halo-dashboard-runtime.js'
+      - 'dist/halo-ui-controller.js'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.repository == 'F250SC/halo-ui'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify version and JavaScript syntax
+        run: |
+          grep -q 'HALO_UI_VERSION = "0.10.45"' dist/halo-core.js
+          grep -q 'HALO UI v0.10.45' dist/halo-ui.js
+          for file in dist/*.js; do node --input-type=module --check < "$file"; done
+      - name: Publish HACS release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v0.10.45 >/dev/null 2>&1; then
+            echo "Release v0.10.45 already exists."
+            exit 0
+          fi
+          gh release create v0.10.45 --target "${GITHUB_SHA}" --title "Halo UI v0.10.45" --notes "Responsive native Home Assistant dashboard alignment: choose left, center, right or HA-default independently for desktop, tablet and mobile, with configurable maximum content width. Supports dashboard-wide and current-view installations. Original Home Assistant cards remain unchanged."

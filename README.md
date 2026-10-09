@@ -276,6 +276,36 @@ Halo UI has dedicated settings for desktop, tablet and mobile layouts, including
 
 Home Assistant still controls the underlying dashboard grid and section wrapping.
 
+### Native dashboard content alignment (new)
+
+Under **Responsive & System → Home Assistant Dashboard-Ausrichtung**, select
+**HA-Standard**, **Links**, **Mittig** or **Rechts** separately for desktop,
+tablet and mobile. **Maximale Inhaltsbreite (px)** limits the width of the
+aligned content on larger screens. Halo uses the existing tablet/mobile
+breakpoints and does not rearrange or replace the user's cards.
+
+All three alignment settings default to **HA-Standard** (no layout changes).
+This is a CSS-only enhancement for Home Assistant's native Lovelace view
+content. The behavior should be visually tested with Sections, Masonry
+and Sidebar views on the Home Assistant frontend version in use.
+
+Example dashboard-wide controller options:
+
+```yaml
+footer:
+  card:
+    type: custom:halo-ui
+    enabled: true
+    target:
+      mode: dashboard
+    layout:
+      dashboard_alignment: center
+      dashboard_tablet_alignment: center
+      dashboard_mobile_alignment: native
+      dashboard_max_width: 1400
+```
+
+
 ## Weather videos
 
 Weather videos are optional and are **not bundled** with Halo UI.
@@ -393,11 +423,11 @@ No. Halo UI is designed as a visual/dashboard layer. Its maintenance tools targe
 
 ## Current release
 
-**v0.10.44**
+**v0.10.45**
 
 Release notes:
 
-https://github.com/F250SC/halo-ui/releases/tag/v0.10.44
+https://github.com/F250SC/halo-ui/releases/tag/v0.10.45
 
 ## Project status
 

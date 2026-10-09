@@ -1002,6 +1002,17 @@ export class HaloUIEditor extends HTMLElement {
     <div class="hint">Die Breakpoints steuern nur Halo. Home Assistant darf seine Sections weiterhin selbst umbrechen. „Kompakt“ entfernt auf kleineren Displays Untertitel/Labels und reduziert beim Handy die Wetterdetails.</div>
     </section>
 
+    <section class="panel"><h3>Home Assistant Dashboard-Ausrichtung</h3>
+      <div class="hint">Richtet den gesamten nativen Dashboard-Inhalt aus (Sections, Masonry und Sidebar-Views), nicht die einzelnen Karten. „HA-Standard“ verändert das ursprüngliche Layout nicht. Desktop, Tablet und Handy sind unabhängig einstellbar.</div>
+      <div class="grid">
+        <label>Desktop-Ausrichtung<select data-path="layout.dashboard_alignment">${[["native","HA-Standard"],["left","Links"],["center","Mittig"],["right","Rechts"]].map(([v,t])=>`<option value="${v}" ${l.dashboard_alignment===v?"selected":""}>${t}</option>`).join("")}</select></label>
+        <label>Maximale Inhaltsbreite (px)<input type="number" min="320" max="3000" step="10" data-path="layout.dashboard_max_width" value="${Number(l.dashboard_max_width??1400)}"></label>
+        <label>Tablet-Ausrichtung<select data-path="layout.dashboard_tablet_alignment">${[["native","HA-Standard"],["left","Links"],["center","Mittig"],["right","Rechts"]].map(([v,t])=>`<option value="${v}" ${l.dashboard_tablet_alignment===v?"selected":""}>${t}</option>`).join("")}</select></label>
+        <label>Handy-Ausrichtung<select data-path="layout.dashboard_mobile_alignment">${[["native","HA-Standard"],["left","Links"],["center","Mittig"],["right","Rechts"]].map(([v,t])=>`<option value="${v}" ${l.dashboard_mobile_alignment===v?"selected":""}>${t}</option>`).join("")}</select></label>
+      </div>
+      <div class="hint">Verwendet die Tablet-/Handy-Breakpoints von oben. HA bestimmt weiterhin selbst die Zahl der Spalten und das Umbrechen der Karten.</div>
+    </section>
+
     <section class="panel"><h3>Responsive Abstände</h3><div class="grid">
       <label>Automatisch<select data-path="design.responsive_spacing"><option value="true" ${effective.design?.responsive_spacing!==false?"selected":""}>An</option><option value="false" ${effective.design?.responsive_spacing===false?"selected":""}>Aus</option></select></label>
       <label>Tablet Kartenabstand<input type="number" min="0" max="48" data-path="design.tablet_card_gap" value="${Number(effective.design?.tablet_card_gap??10)}"></label>
