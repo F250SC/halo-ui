@@ -261,6 +261,7 @@ class HaloDashboardAlignment {
     this.view = null;
   }
   mount(view, layout = {}) {
+    // Keep styling scoped to the currently active Lovelace view.
     if (this.view !== view || !this.style?.isConnected) {
       this.destroy();
       if (!view?.shadowRoot) return;
@@ -273,21 +274,30 @@ class HaloDashboardAlignment {
     const desktop = normalize(layout.dashboard_alignment);
     const tablet = normalize(layout.dashboard_tablet_alignment);
     const mobile = normalize(layout.dashboard_mobile_alignment);
+    if ([desktop, tablet, mobile].every(value => value === "native")) {
+      this.style.textContent = "";
+      return;
+    }
     const tabletBreakpoint = Math.max(600, Number(layout.tablet_breakpoint) || 1400);
     const mobileBreakpoint = Math.max(320, Math.min(tabletBreakpoint - 1, Number(layout.mobile_breakpoint) || 850));
     const maxWidth = Math.max(320, Math.min(3000, Number(layout.dashboard_max_width) || 1400));
-    // Native mode is a strict no-op, including for existing dashboards.
-    const selectors = ":is(#sections, .sections, #columns, .columns, .container)";
-    const rule = mode => mode === "native" ? "" :
-      `${selectors} { box-sizing: border-box !important; max-width: min(100%, ${maxWidth}px) !important; margin-left: ${mode === "left" ? "0" : "auto"} !important; margin-right: ${mode === "right" ? "0" : "auto"} !important; }`;
+    // Sections uses .wrapper for overall content width. Restricting .container
+    // instead can unintentionally alter Home Assistant's internal grid.
+    // Masonry uses #columns for the native flex layout.
+    const selector = view.localName === "hui-sections-view"
+      ? ".wrapper"
+      : view.localName === "hui-masonry-view"
+        ? "#columns"
+        : ".wrapper, #columns";
+    const rule = mode => mode === "native"
+      ? `${selector} { max-width: revert-layer !important; margin-left: revert-layer !important; margin-right: revert-layer !important; }`
+      : `${selector} { box-sizing: border-box !important; width: auto !important; max-width: min(100%, ${maxWidth}px) !important; margin-left: ${mode === "left" ? "0" : "auto"} !important; margin-right: ${mode === "right" ? "0" : "auto"} !important; }`;
+    // Mobile first, then tablet, then desktop with nonoverlapping ranges:
+    // native responsive options inherit HA styles rather than a prior override.
     this.style.textContent = `
-      ${rule(desktop)}
-      @media (max-width: ${tabletBreakpoint}px) {
-        ${tablet === "native" ? `${selectors} { max-width: none !important; margin-left: initial !important; margin-right: initial !important; }` : rule(tablet)}
-      }
-      @media (max-width: ${mobileBreakpoint}px) {
-        ${mobile === "native" ? `${selectors} { max-width: none !important; margin-left: initial !important; margin-right: initial !important; }` : rule(mobile)}
-      }
+      @media (min-width: ${tabletBreakpoint + 1}px) { ${desktop === "native" ? "" : rule(desktop)} }
+      @media (min-width: ${mobileBreakpoint + 1}px) and (max-width: ${tabletBreakpoint}px) { ${tablet === "native" ? "" : rule(tablet)} }
+      @media (max-width: ${mobileBreakpoint}px) { ${mobile === "native" ? "" : rule(mobile)} }
     `;
   }
 }
