@@ -23,6 +23,10 @@ export const HALO_UI_DEFAULTS = {
     cards: false
   },
   layout: {
+    dashboard_alignment: "native",
+    dashboard_max_width: 1400,
+    dashboard_tablet_alignment: "native",
+    dashboard_mobile_alignment: "native",
     position: "left",
     width: "320px",
     tablet_breakpoint: 1400,
