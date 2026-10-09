@@ -23,7 +23,7 @@ jobs:
         run: |
           grep -q 'HALO_UI_VERSION = "0.10.45"' dist/halo-core.js
           grep -q 'HALO UI v0.10.45' dist/halo-ui.js
-          for file in dist/*.js; do node --check "$file"; done
+          for file in dist/*.js; do node --input-type=module --check < "$file"; done
       - name: Publish HACS release
         env:
           GH_TOKEN: ${{ github.token }}
