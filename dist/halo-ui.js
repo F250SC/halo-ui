@@ -10,4 +10,4 @@ import "./halo-dashboard-runtime.js";
 import "./halo-ui-editor.js";
 import "./halo-ui-controller.js";
 
-console.info("%c HALO UI v0.10.46 ", "background:#8a2be2;color:white;border-radius:5px;padding:3px 7px;font-weight:700");
+console.info("%c HALO UI v0.10.47 ", "background:#8a2be2;color:white;border-radius:5px;padding:3px 7px;font-weight:700");

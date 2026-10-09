@@ -262,6 +262,8 @@ export class HaloDashboardAlignment {
     this.resizeObserver = null;
     this.frame = 0;
     this.layout = {};
+    this.editCheckTimer = null;
+    this.lastEditMode = null;
     this.onResize = () => this.queue();
   }
   destroy() {
@@ -269,6 +271,9 @@ export class HaloDashboardAlignment {
     this.frame = 0;
     this.observer?.disconnect();
     this.resizeObserver?.disconnect();
+    if (this.editCheckTimer !== null) clearInterval(this.editCheckTimer);
+    this.editCheckTimer = null;
+    this.lastEditMode = null;
     window.removeEventListener("resize", this.onResize);
     this.observer = null;
     this.resizeObserver = null;
@@ -279,6 +284,7 @@ export class HaloDashboardAlignment {
     this.view = null;
   }
   mode() {
+    if (dashboardEditMode(this.view)) return "native";
     const l = this.layout;
     const tablet = Math.max(600, Number(l.tablet_breakpoint) || 1400);
     const mobile = Math.max(320, Math.min(tablet - 1, Number(l.mobile_breakpoint) || 850));
@@ -368,8 +374,36 @@ export class HaloDashboardAlignment {
       this.resizeObserver = new ResizeObserver(() => this.queue());
       this.resizeObserver.observe(view);
       window.addEventListener("resize", this.onResize);
+      // HA toggles edit mode without necessarily rebuilding the view. Poll only
+      // this lightweight boolean, never the cards or their SVG animations.
+      this.lastEditMode = dashboardEditMode(view);
+      this.editCheckTimer = window.setInterval(() => {
+        if (!this.view?.isConnected) return;
+        const edit = dashboardEditMode(this.view);
+        if (edit === this.lastEditMode) return;
+        this.lastEditMode = edit;
+        this.syncOuterStyle();
+        this.queue();
+      }, 250);
     }
     this.layout = layout;
+    this.syncOuterStyle();
+    this.queue();
+  }
+  syncOuterStyle() {
+    const view = this.view;
+    const layout = this.layout;
+    if (!view || !this.style) return;
+    if (dashboardEditMode(view)) {
+      // HA edit handles, drop zones and section outlines must remain aligned
+      // with the untouched native grid; no Halo positioning during edit mode.
+      this.style.textContent = "";
+      for (const style of this.sectionStyles.values()) {
+        style.textContent = "";
+        style.dataset.shift = "0";
+      }
+      return;
+    }
     const norm = v => ["left", "center", "right"].includes(v) ? v : "native";
     const desktop = norm(layout.dashboard_alignment);
     const tablet = norm(layout.dashboard_tablet_alignment);
@@ -387,7 +421,6 @@ export class HaloDashboardAlignment {
       "@media(min-width:" + (tb+1) + "px){" + rule(desktop) + "}" +
       "@media(min-width:" + (mb+1) + "px) and (max-width:" + tb + "px){" + rule(tablet) + "}" +
       "@media(max-width:" + mb + "px){" + rule(mobile) + "}";
-    this.queue();
   }
 }
 
