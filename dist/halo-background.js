@@ -340,7 +340,7 @@ export class HaloBackgroundLayer extends HTMLElement {
       <style>
         :host{position:absolute;inset:0;display:block;overflow:hidden;pointer-events:none;background:#12051f}
         .base{position:absolute;inset:${animatedInset};background:${gradientBackground};background-size:100% 100%;transform-origin:${gradient.center_x}% ${gradient.center_y}%;${animateGradient ? `${gradientAnimation.css}will-change:transform;` : ""}}
-        .image,.video{position:absolute;inset:0;width:100%;height:100%;object-fit:${fit}}
+        .image,.video{position:absolute;inset:0;width:100%;height:100%;object-fit:${fit};object-position:50% 50%}
         .image{background-position:center;background-size:${fit === "fill" ? "100% 100%" : fit};background-repeat:no-repeat}
         .video{opacity:0;transform:translateZ(0);backface-visibility:hidden;transition:opacity ${crossfade}s linear}
         .video.active{opacity:${opacity}}
