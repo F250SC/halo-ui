@@ -794,7 +794,7 @@ class HaloSidebar extends HTMLElement {
         playsinline
         preload="${preload}"
         src="${esc(source)}"
-        style="opacity:${opacity};object-fit:${fit};"
+        style="opacity:${opacity};object-fit:${fit};object-position:50% 50%;"
       ></video>
       ${overlay > 0 ? `<div class="bg-video-overlay" style="background:rgba(0,0,0,${overlay})"></div>` : ""}
     `;
@@ -983,6 +983,7 @@ class HaloSidebar extends HTMLElement {
           width:100%;
           height:100%;
           object-fit:cover;
+          object-position:50% 50%;
           z-index:-3;
           background:transparent;
 
