@@ -423,11 +423,11 @@ No. Halo UI is designed as a visual/dashboard layer. Its maintenance tools targe
 
 ## Current release
 
-**v0.10.47**
+**v0.10.48**
 
 Release notes:
 
-https://github.com/F250SC/halo-ui/releases/tag/v0.10.47
+https://github.com/F250SC/halo-ui/releases/tag/v0.10.48
 
 ## Project status
 
