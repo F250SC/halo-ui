@@ -252,6 +252,46 @@ function hasLocalHaloOwner(targetView) {
   return found;
 }
 
+// Apply only to the active view's own shadow root. No user card is rewritten.
+class HaloDashboardAlignment {
+  constructor() { this.view = null; this.style = null; }
+  destroy() {
+    this.style?.remove();
+    this.style = null;
+    this.view = null;
+  }
+  mount(view, layout = {}) {
+    if (this.view !== view || !this.style?.isConnected) {
+      this.destroy();
+      if (!view?.shadowRoot) return;
+      this.view = view;
+      this.style = document.createElement("style");
+      this.style.setAttribute("data-halo-dashboard-alignment", "");
+      view.shadowRoot.appendChild(this.style);
+    }
+    const normalize = value => ["left", "center", "right"].includes(value) ? value : "native";
+    const desktop = normalize(layout.dashboard_alignment);
+    const tablet = normalize(layout.dashboard_tablet_alignment);
+    const mobile = normalize(layout.dashboard_mobile_alignment);
+    const tabletBreakpoint = Math.max(600, Number(layout.tablet_breakpoint) || 1400);
+    const mobileBreakpoint = Math.max(320, Math.min(tabletBreakpoint - 1, Number(layout.mobile_breakpoint) || 850));
+    const maxWidth = Math.max(320, Math.min(3000, Number(layout.dashboard_max_width) || 1400));
+    // Native mode is a strict no-op, including for existing dashboards.
+    const selectors = ":is(#sections, .sections, #columns, .columns, .container)";
+    const rule = mode => mode === "native" ? "" :
+      `${selectors} { box-sizing: border-box !important; max-width: min(100%, ${maxWidth}px) !important; margin-left: ${mode === "left" ? "0" : "auto"} !important; margin-right: ${mode === "right" ? "0" : "auto"} !important; }`;
+    this.style.textContent = `
+      ${rule(desktop)}
+      @media (max-width: ${tabletBreakpoint}px) {
+        ${tablet === "native" ? `${selectors} { max-width: none !important; margin-left: initial !important; margin-right: initial !important; }` : rule(tablet)}
+      }
+      @media (max-width: ${mobileBreakpoint}px) {
+        ${mobile === "native" ? `${selectors} { max-width: none !important; margin-left: initial !important; margin-right: initial !important; }` : rule(mobile)}
+      }
+    `;
+  }
+}
+
 class HaloDashboardRuntime {
   constructor() {
     // v0.10.8: remove persistent owner caches created by older versions.
@@ -267,6 +307,7 @@ class HaloDashboardRuntime {
     this.designManager = new HaloDesignManager(this);
     this.sidebarManager = new HaloDashboardSidebarManager();
     this.headerManager = new HaloHeaderManager();
+    this.alignmentManager = new HaloDashboardAlignment();
 
     this._observer = null;
     this._applyQueued = false;
@@ -367,6 +408,7 @@ class HaloDashboardRuntime {
   }
 
   _suspendVisualModules() {
+    this.alignmentManager.destroy();
     // Halo UI is a Lovelace/dashboard layer. Nothing may remain mounted when
     // there is no active Lovelace view (Settings, Apps, HACS, etc.).
     this.backgroundManager.destroy();
@@ -798,6 +840,7 @@ class HaloDashboardRuntime {
     const c = applyPerformanceTuning(resolved);
 
     if (c.enabled === false) {
+      this.alignmentManager.destroy();
       this.backgroundManager.destroy();
       this.designManager.destroy();
       this.sidebarManager.destroy();
@@ -805,6 +848,8 @@ class HaloDashboardRuntime {
       this._removeEditButton();
       return;
     }
+
+    this.alignmentManager.mount(target, c.layout);
 
     if (c.modules?.background === true) {
       this.backgroundManager.mount(target, c.background, c.design, hass);
