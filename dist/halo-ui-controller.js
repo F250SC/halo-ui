@@ -3,7 +3,7 @@ import { localizeHaloDom, translateHaloText } from "./halo-i18n.js";
 import { HaloBackgroundManager } from "./halo-background.js";
 import { HaloDesignManager } from "./halo-design.js";
 import { HaloHeaderManager } from "./halo-dashboard-header.js";
-import { publishDashboardConfig } from "./halo-dashboard-runtime.js";
+import { publishDashboardConfig, HaloDashboardAlignment } from "./halo-dashboard-runtime.js";
 import "./halo-ui-editor.js";
 
 const LegacyViewSidebar = customElements.get("halo-view-sidebar");
@@ -26,6 +26,7 @@ export class HaloUI extends LegacyViewSidebar {
     this._backgroundManager = new HaloBackgroundManager(this);
     this._designManager = new HaloDesignManager(this);
     this._headerManager = new HaloHeaderManager();
+    this._alignmentManager = new HaloDashboardAlignment();
     const initialPreview = window.__haloUiPreviewContext;
     this._haloPreviewTab = typeof initialPreview === "object" ? (initialPreview.tab || "modules") : (initialPreview || "modules");
     this._haloPreviewViewKey = typeof initialPreview === "object" ? (initialPreview.viewKey || "__dashboard__") : "__dashboard__";
@@ -342,6 +343,7 @@ export class HaloUI extends LegacyViewSidebar {
     this._backgroundManager.destroy();
     this._designManager.destroy();
     this._headerManager.destroy();
+    this._alignmentManager.destroy();
     this._previewBackgroundLayer = null;
     this._previewHeaderElement = null;
     super.disconnectedCallback();
@@ -360,6 +362,7 @@ export class HaloUI extends LegacyViewSidebar {
       this._backgroundManager.destroy();
       this._designManager.destroy();
       this._headerManager.destroy();
+      this._alignmentManager.destroy();
       return;
     }
 
@@ -370,12 +373,14 @@ export class HaloUI extends LegacyViewSidebar {
       this._backgroundManager.destroy();
       this._designManager.destroy();
       this._headerManager.destroy();
+      this._alignmentManager.destroy();
       publishDashboardConfig(raw);
       return;
     }
 
     const target = this._view || findHaloView(this);
-    if (!target) return;
+    if (!target) { this._alignmentManager.destroy(); return; }
+    this._alignmentManager.mount(target, c.layout);
 
     if (c.modules?.background === true) {
       this._backgroundManager.mount(target, c.background, c.design, this._haloHass);
