@@ -1,31 +1,29 @@
 # Halo UI for Home Assistant
 
-Halo UI started as a way to make my own Home Assistant dashboard feel a little more personal. I wanted a sidebar, a cleaner layout, nicer backgrounds and a consistent look — without having to rebuild the cards and automations that already worked.
+I built Halo UI for my own Home Assistant setup. I wanted a sidebar, weather backgrounds and a way to change the dashboard's appearance without redoing all my cards.
 
-It grew into a configurable visual layer for Lovelace dashboards. You can use just the parts you like, keep the original Home Assistant layout where you prefer, and make changes through a visual editor instead of editing a huge YAML file.
-
-**Halo UI doesn't replace your cards or entities.** It works around them.
+I've since added a configuration editor and a few other options. You can use the whole thing or just enable the parts you need. Your existing cards and entities stay in place.
 
 [![HACS Validation](https://img.shields.io/github/actions/workflow/status/F250SC/halo-ui/validate.yml?branch=main&label=HACS%20validation)](https://github.com/F250SC/halo-ui/actions/workflows/validate.yml)
 [![Latest Release](https://img.shields.io/github/v/release/F250SC/halo-ui)](https://github.com/F250SC/halo-ui/releases/latest)
 [![License](https://img.shields.io/github/license/F250SC/halo-ui)](LICENSE)
 
-## What can it do?
+## Features
 
-You don't have to turn everything on. Halo UI is split into modules that can be configured separately:
+Each part can be enabled separately:
 
-- **Sidebar:** Add a clock, date, weather, navigation and people/presence tiles. Choose different layouts and styles.
-- **Header:** Show a title, greeting, navigation, clock or weather information, with compact options for smaller screens.
-- **Backgrounds:** Use gradients, images, videos or weather-dependent videos.
-- **Glass styling:** Give regular HA cards a shared look with adjustable opacity, blur, borders, shadows and colors.
-- **Active-state colors:** Give lights, switches, media players, climate devices, vacuums and warnings their own colors.
-- **Dashboard alignment:** Align native dashboard content left, center or right, with separate settings for desktop, tablet and phone.
-- **Presets and gradient editor:** Start with a ready-made look or create your own linear, radial or conic gradient with multiple color stops.
-- **Configuration tools:** Export/import settings, reset modules and check basic diagnostics.
+- **Sidebar:** Clock, date, weather, navigation and person tiles, with a few layout options.
+- **Header:** Title, greeting, navigation, clock and weather. Can be made smaller or hidden on mobile.
+- **Backgrounds:** Gradients, images, videos and weather-based video switching.
+- **Card styling:** Glass effects, colors, borders and shadows.
+- **State colors:** Different colors for active lights, switches, media players, climate, vacuums and warnings.
+- **Dashboard alignment:** Left, center or right, with separate desktop, tablet and mobile settings.
+- **Presets and gradients:** A few presets and an editor for custom gradients.
+- **Tools:** Import/export settings, module resets and diagnostics.
 
-Halo UI tries to leave complex custom cards alone internally. Some custom cards may still need a little adjustment depending on the Home Assistant version, theme and card.
+Custom cards aren't all built the same way, so some may look different with Halo styling enabled. If one breaks, try the outer-frame-only compatibility option.
 
-## A few screenshots
+## Screenshots
 
 ### Glass dashboard
 
@@ -63,11 +61,11 @@ The main frontend resource is:
 
 If you've previously installed Halo UI manually using `/local/halo-ui/halo-ui.js`, remove that *old resource entry* after switching to HACS. Loading both resources can cause problems. Your own weather videos in `/local/halo-ui/halo_weather/` do not need to be deleted.
 
-## Getting started
+## Setup
 
-Edit your dashboard, add the **Halo UI** card and save. While the dashboard is in edit mode, open the Halo gear button to configure it.
+Edit your dashboard, add the **Halo UI** card and save. Open the Halo gear button in dashboard edit mode to change the settings.
 
-You can apply Halo UI to the current view or use one shared configuration for the whole dashboard, with individual view overrides where needed.
+You can use Halo UI on one view or across the dashboard. Dashboard-wide settings can be overridden for individual views.
 
 For a YAML dashboard, a minimal example is:
 
@@ -84,9 +82,9 @@ You can switch `current_view` to `dashboard` if you want the settings to apply a
 
 ## Layout on desktop, tablet and phone
 
-Home Assistant remains responsible for its underlying grid and responsive card wrapping. Halo UI adds separate controls for sidebar and header behavior, card spacing and native dashboard content alignment.
+Home Assistant still handles the card grid. Halo UI can adjust spacing, sidebar/header behavior and where the dashboard content sits.
 
-Under **Responsive & System → Home Assistant Dashboard-Ausrichtung**, choose **HA default**, **left**, **center** or **right** for desktop, tablet and mobile. You can also set a maximum content width. The default is to leave HA's layout alone.
+In **Responsive & System → Home Assistant Dashboard-Ausrichtung**, you can set left, center or right alignment separately for desktop, tablet and mobile. There's also a maximum width setting. By default, Halo UI leaves HA's alignment unchanged.
 
 For example:
 
@@ -104,15 +102,15 @@ footer:
       dashboard_max_width: 1400
 ```
 
-Halo UI applies the visual alignment during normal dashboard use and leaves Home Assistant's native editing layout in place while you're moving cards around.
+Alignment is turned off while editing the dashboard so HA's drag-and-drop controls stay in their normal positions.
 
 ## Weather videos
 
-One of my favorite options is changing the background depending on the current weather. You can use different clips for sun, clear nights, clouds, rain, heavy rain, lightning, snow, fog and wind.
+You can assign videos to weather conditions such as sunny, cloudy, rainy, snowy and foggy. Halo UI switches between them based on the weather entity.
 
-**Videos are not included in the repository.** You provide your own files, which keeps the download smaller and avoids distributing third-party footage.
+**Weather videos aren't included.** You'll need to add your own files.
 
-Place them somewhere under Home Assistant's `www` directory (available in the browser as `/local/`) and assign them to conditions in the Halo editor. For example:
+Put the MP4 files in Home Assistant's `www` directory (accessible as `/local/`) and set their paths in Halo UI. For example:
 
 ```yaml
 weather_videos:
@@ -121,9 +119,9 @@ weather_videos:
   rainy: /local/halo-ui/halo_weather/rainy.mp4
 ```
 
-Videos use a centered focal point when filling the available space, including narrow mobile screens and the sidebar. For best results, try short, quiet MP4 clips that loop smoothly. Make sure you have permission to use any footage you download.
+Videos are centered when cropped to fit the screen or sidebar. Short, smoothly looping MP4 files work best. Check the license if you're using downloaded footage.
 
-If a video isn't available, behavior depends on your chosen background mode and fallback settings.
+If a file doesn't load, the result depends on your background and fallback settings.
 
 ## Languages
 
@@ -133,7 +131,7 @@ The configurator follows the Home Assistant language for German and English. Oth
 
 HACS handles updates. After updating, reload the browser; if an older version still appears, try a hard refresh.
 
-Before making larger changes, it's worth exporting your Halo configuration through the editor. You can also reset individual modules or remove Halo UI without intentionally deleting your usual Lovelace cards.
+You can export your Halo configuration before changing things. The editor also has module resets and an option to remove Halo UI without deleting your existing cards.
 
 ## Troubleshooting
 
@@ -147,15 +145,13 @@ Before making larger changes, it's worth exporting your Halo configuration throu
 
 **The old interface still appears after updating.** Check that the old manual resource isn't loaded alongside the HACS resource, then hard-refresh your browser.
 
-Halo UI is still evolving, and Home Assistant's frontend changes over time. If something breaks, a report with your HA version, Halo UI version, view type and a screenshot is genuinely helpful.
+Home Assistant updates can change how some of this works. If something stops working, please include your HA version, Halo UI version, view type and a screenshot in the issue.
 
 ## Releases and feedback
 
-For the newest version and changes, see [GitHub Releases](https://github.com/F250SC/halo-ui/releases/latest).
+Changes are listed under [Releases](https://github.com/F250SC/halo-ui/releases/latest).
 
-Found a bug or have an idea? [Open an issue](https://github.com/F250SC/halo-ui/issues). Screenshots and clear reproduction steps help a lot.
-
-This project is developed and maintained independently. Feedback is welcome, but fixes and new features can take time.
+If you've found a bug or want to suggest something, [open an issue](https://github.com/F250SC/halo-ui/issues). I'm working on this in my spare time, so I can't promise a quick fix for everything.
 
 ## License
 
