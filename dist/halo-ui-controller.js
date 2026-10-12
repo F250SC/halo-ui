@@ -146,19 +146,15 @@ export class HaloUI extends LegacyViewSidebar {
           super._dashboardEditMode?.() === true ||
           this._globalEditModeFallback();
 
-        // Dashboard mode also has a runtime editor that can work without HA's
-        // native edit wrapper. Prefer native owner editing while edit mode is
-        // active, otherwise use the runtime editor as a safe fallback.
-        if (
-          !editMode &&
-          this._haloUiConfig?.target?.mode === "dashboard" &&
-          window.__haloUiDashboardRuntime?._openRuntimeEditor
-        ) {
-          window.__haloUiDashboardRuntime._openRuntimeEditor();
-          return;
+        // Always use the Halo configuration dialog for the owner gear.
+        // The normal HA card pencil continues to use the native card editor.
+        const runtime = window.__haloUiDashboardRuntime;
+        if (runtime?._openRuntimeEditor) {
+          runtime._openRuntimeEditor(this);
+        } else {
+          console.error("[Halo UI] The configuration editor is not available.");
+          window.alert("Halo UI: The configuration editor is not available. Try reloading Home Assistant.");
         }
-
-        this._openHaloEditor();
       });
 
       document.body.appendChild(button);
