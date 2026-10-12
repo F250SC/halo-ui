@@ -5,7 +5,7 @@
   const TAG="halo-vacuum-test";
   if(customElements.get(TAG))return;
   const safe=(v)=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  const defaults={entity:"vacuum.z60_ultra_roller_complete",name:"Z60",navigation_path:"/dashboard-x/vacuum",image_base:"/hacsfiles/halo-ui"};
+  const defaults={entity:"vacuum.z60_ultra_roller_complete",name:"Z60",navigation_path:"/dashboard-x/vacuum",image_base:"/hacsfiles/halo-ui",demo_controls:true};
   const css=String.raw`
 :host{display:block;container-type:inline-size;min-width:0}
 ha-card{background:transparent!important;border:0!important;box-shadow:none!important;overflow:visible}
@@ -43,9 +43,32 @@ ha-card{background:transparent!important;border:0!important;box-shadow:none!impo
 @keyframes halo-vac-dot{0%,100%{box-shadow:0 0 4px var(--dot)}50%{box-shadow:0 0 15px var(--dot)}}
 @container(max-width:270px){.shell{min-height:160px}.details{left:44%;bottom:20px;gap:5px}.title{font-size:16px}.state{font-size:11px}}
 @media(prefers-reduced-motion:reduce){.shell::before,.dot{animation:none!important}}
+
+
+/* Distinct visible status animations; overlays never block dashboard navigation. */
+.fx{position:absolute;inset:0;pointer-events:none;z-index:1;overflow:hidden}
+.fx>span{position:absolute;display:block;pointer-events:none}
+.fx-orbit{left:12%;top:27%;width:42%;aspect-ratio:1;border-radius:50%;border:2px solid transparent;opacity:0}
+.docked.charging .fx-orbit{border-color:rgba(204,128,255,.76);box-shadow:0 0 18px rgba(187,93,255,.5),inset 0 0 15px rgba(187,93,255,.28);animation:hv-charge 2.5s ease-out infinite}
+.docked.drying .fx-orbit{border-color:rgba(255,155,204,.7);animation:hv-charge 3.2s ease-out infinite}
+.fx-spark{left:31%;bottom:19%;width:4px;height:4px;border-radius:50%;opacity:0}
+.docked.charging .fx-spark{background:#f7d4ff;box-shadow:0 0 10px 5px rgba(177,85,250,.85);animation:hv-spark 1.2s ease-in-out infinite alternate}
+.fx-scan{left:-28%;bottom:15%;width:75%;height:32%;opacity:0;transform:skewX(-25deg);background:linear-gradient(90deg,transparent,rgba(85,172,255,.0) 25%,rgba(94,171,255,.25) 58%,rgba(157,219,255,.51) 64%,transparent 72%);filter:blur(3px)}
+.cleaning .fx-scan{animation:hv-scan 3s linear infinite}
+.fx-path{left:4%;right:48%;bottom:10%;height:4px;transform:rotate(-15deg);opacity:0;border-radius:15px;background:repeating-linear-gradient(90deg,transparent 0 12px,#cd8dff 12px 24px,transparent 24px 36px);filter:drop-shadow(0 0 6px #b75aff)}
+.returning .fx-path{animation:hv-route 1.6s linear infinite}
+.returning .fx-orbit{border:2px dashed rgba(185,122,255,.6);animation:hv-charge 3s ease-out infinite}
+.demo-toolbar{position:absolute;z-index:5;left:9px;top:9px;display:flex;gap:5px;align-items:center}
+.demo-toolbar button{appearance:none;cursor:pointer;border:1px solid rgba(202,174,255,.62);color:#fff;background:rgba(21,15,44,.82);backdrop-filter:blur(8px);border-radius:20px;padding:5px 9px;font:600 10px/1.3 inherit;box-shadow:0 0 10px rgba(114,53,218,.22)}
+.demo-toolbar button:hover{background:rgba(94,52,163,.95);border-color:#d9baff}
+@keyframes hv-charge{0%{transform:scale(.55);opacity:0}35%{opacity:.75}100%{transform:scale(1.38);opacity:0}}
+@keyframes hv-spark{from{opacity:.2;transform:scale(.8)}to{opacity:1;transform:scale(2)}}
+@keyframes hv-scan{0%{transform:translateX(-50%) skewX(-25deg);opacity:0}18%{opacity:.8}80%{opacity:.8}100%{transform:translateX(195%) skewX(-25deg);opacity:0}}
+@keyframes hv-route{from{background-position:0 0;opacity:.25}50%{opacity:.95}to{background-position:108px 0;opacity:.35}}
+@media(prefers-reduced-motion:reduce){.fx>span{animation:none!important;opacity:.18!important}}
 `;
   class HaloVacuumTest extends HTMLElement{
-    constructor(){super();this.attachShadow({mode:"open"});this._config={...defaults};this._hass=null;}
+    constructor(){super();this.attachShadow({mode:"open"});this._config={...defaults};this._hass=null;this._demoState=null;}
     static getStubConfig(){return {type:"custom:halo-vacuum-test",entity:defaults.entity,name:"Z60"};}
     getCardSize(){return 3;}
     getGridOptions(){return {columns:9,rows:4,min_columns:5,min_rows:3};}
@@ -67,6 +90,7 @@ ha-card{background:transparent!important;border:0!important;box-shadow:none!impo
       let state=vac?.state||"unknown";
       const pstate=get("input_select.z60_preview_state");
       if(preview&&pstate&&pstate!=="real")state=pstate;
+      if(this._demoState)state=this._demoState;
       let battery=Number(vac?.attributes?.battery_level);
       if(!Number.isFinite(battery))battery=Number(get("sensor.z60_ultra_roller_complete_battery_level"));
       const pbat=Number(get("input_number.z60_preview_battery"));
@@ -80,20 +104,30 @@ ha-card{background:transparent!important;border:0!important;box-shadow:none!impo
       let charging=/charg|lad/.test(chargingState)||(state==="docked"&&(battery===null||battery<99)&&!chargingStatus.includes("abgeschlossen"));
       const pdock=get("input_select.z60_preview_dockmode");
       if(preview&&pdock&&pdock!=="auto"){drying=pdock==="drying";charging=pdock==="charging";}
+      if(this._demoState){drying=false;charging=this._demoState==="docked";}
       const scene=state==="cleaning"?"cleaning":state==="returning"?"returning":state==="paused"?"paused":state==="docked"?"docked":"paused";
       const label=state==="cleaning"?"Reinigt":state==="returning"?"Kehrt zurück":state==="paused"?"Pausiert":state==="docked"?(drying?"Trocknet":charging?"Lädt":"Angedockt"):state==="unavailable"?"Nicht verfügbar":"Bereit";
       const colors={cleaning:"#66b7ff",returning:"#c58aff",paused:"#aba4be",docked:drying?"#f1a2df":charging?"#b58aff":"#88dcc7"};
       const color=colors[scene];
       const sceneUrl=cfg.image_base+"/halo-vacuum-"+scene+".webp";
+      const demo=Boolean(cfg.demo_controls);
+      const statesCycle=["docked","cleaning","returning","paused"];
+      const demoNames={docked:"Lädt",cleaning:"Reinigt",returning:"Kehrt zurück",paused:"Pausiert"};
       const pct=battery===null?"–":battery+" %";
       const displayName=safe(cfg.name||vac?.attributes?.friendly_name||"Z60");
       const sub=state==="cleaning"?String(get("sensor.z60_ultra_roller_complete_current_room")||""):"";
       const chargingClass=state==="docked"?(drying?" drying":charging?" charging":""):"";
       this.shadowRoot.innerHTML='<style>'+css+'</style><ha-card><div class="shell '+scene+chargingClass+'" tabindex="0" role="link" style="--scene:url(&quot;'+safe(sceneUrl)+'&quot;);--dot:'+color+'" aria-label="'+displayName+', '+safe(label)+', '+safe(pct)+'. Dashboard öffnen">'+
+        '<div class="fx fx-'+scene+'"><span class="fx-orbit"></span><span class="fx-scan"></span><span class="fx-path"></span><span class="fx-spark"></span></div>'+
+        (demo?'<div class="demo-toolbar"><button class="demo-next" type="button" title="Nächsten Status anzeigen">◀  '+safe(this._demoState?demoNames[this._demoState]:'LIVE')+'  ▶</button>'+(this._demoState?'<button class="demo-real" type="button" title="Echtzustand anzeigen">Live</button>':'')+'</div>':'')+
         '<div class="battery '+(charging?"charging":"")+'"><svg viewBox="0 0 24 16" aria-hidden="true"><rect x="1" y="2" width="19" height="12" rx="2.3" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="21" y="6" width="2" height="4" rx="1" fill="currentColor"/><rect class="fill" x="3.2" y="4.2" width="'+(battery===null?0:14.5*battery/100)+'" height="7.6" rx="1"/></svg>'+safe(pct)+'</div>'+
         '<div class="details"><div class="title">'+displayName+'</div><div class="state"><span class="dot"></span>'+safe(label)+'</div>'+(sub?'<div class="sub">'+safe(sub)+'</div>':'')+'</div><span class="chevron" aria-hidden="true">›</span></div></ha-card>';
       const surface=this.shadowRoot.querySelector(".shell");
       if(!surface)return;
+      if(demo){
+        surface.querySelector(".demo-next")?.addEventListener("click",e=>{e.stopPropagation();const i=statesCycle.indexOf(this._demoState);this._demoState=statesCycle[(i+1)%statesCycle.length];this._render();});
+        surface.querySelector(".demo-real")?.addEventListener("click",e=>{e.stopPropagation();this._demoState=null;this._render();});
+      }
       const navigate=()=>{
         const path=cfg.navigation_path;
         history.pushState(null,"",path);
