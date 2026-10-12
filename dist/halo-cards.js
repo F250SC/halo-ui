@@ -136,7 +136,7 @@ class HaloCardsEditor extends HTMLElement {
     this._render();
   }
   _render() {
-    const c=this._config,steps=[["type","Kartentyp"],["entity","Entität"],["design","Design"],["actions","Aktionen"]];
+    const c=this._config,steps=[["type","Kartentyp"],["entity","Entität"],["design","Design"],["media","Medien"],["actions","Aktionen"]];
     const buttons=steps.map(([id,label])=>'<button type="button" data-step="'+id+'" class="'+(this._step===id?'selected':'')+'">'+label+'</button>').join('');
     const choices=CARD_TYPES.map(t=>'<button type="button" class="choice '+(t.id===c.card_type?'selected':'')+'" data-type="'+t.id+'" '+(t.soon?'disabled':'')+'><ha-icon icon="'+t.icon+'"></ha-icon>'+t.label+(t.soon?'<small>Demnächst</small>':'<small>Jetzt verfügbar</small>')+'</button>').join('');
     const styles=STYLES.map(s=>'<button type="button" class="choice '+(s===c.style?'selected':'')+'" data-style="'+s+'"><ha-icon icon="mdi:palette-outline"></ha-icon>'+s[0].toUpperCase()+s.slice(1)+'</button>').join('');
@@ -146,14 +146,15 @@ class HaloCardsEditor extends HTMLElement {
     let body='';
     if(this._step==='type')body='<div class="choices">'+choices+'</div><p class="note">Nur eine Halo-Cards-Karte in Home Assistant. Weitere Kartentypen folgen nach Halo Light.</p>';
     if(this._step==='entity')body='<div class="fields"><label class="field">Licht-Entität<select data-field="entity">'+options+'</select></label><label class="field">Anzeigename<input type="text" data-field="name" value="'+esc(c.name)+'" placeholder="Name der Entität übernehmen"></label></div>';
-    if(this._step==='design')body='<div class="fields"><label>Halo Adaptive</label><div class="choices">'+styles+'</div><label>Kartengröße</label><div class="choices">'+sizes+'</div><label class="field">Akzentfarbe<input type="color" data-field="accent" value="'+c.accent+'"></label></div>';
-    if(this._step==='actions')body='<label><input type="checkbox" data-field="show_brightness" '+(c.show_brightness?'checked':'')+'> Helligkeitsregler anzeigen</label><p class="note">Ein-/Ausschalten per Power-Button; Helligkeit beim Loslassen des Reglers senden.</p>';
-    this.shadowRoot.innerHTML='<style>'+editorCss+'</style><section class="editor"><h3>Halo Cards</h3><p class="subtitle">Eine Karte. Viele Möglichkeiten. · Entwicklungs-Vorschau</p><nav class="tabs">'+buttons+'</nav>'+body+'<div class="preview"><h4>Live-Vorschau</h4><halo-cards></halo-cards><p class="note">Bei echter Verwendung wird die Vorschau mit deinen Home-Assistant-Daten aktualisiert.</p></div></section>';
+    if(this._step==='design')body='<div class="fields"><label>Halo Adaptive</label><div class="choices">'+styles+'</div><label>Kartengröße</label><div class="choices">'+sizes+'</div><label class="field">Akzentfarbe<input type="color" data-field="accent" value="'+c.accent+'"></label><label class="field">Glow-Intensität: '+c.glow_strength+' %<input type="range" min="0" max="100" data-field="glow_strength" value="'+c.glow_strength+'"></label></div>';
+    if(this._step==='media')body='<div class="fields"><label class="field">Signature-Lichtstimmung<select data-field="scene"><option value="warm" '+(c.scene==='warm'?'selected':'')+'>Warm</option><option value="cool" '+(c.scene==='cool'?'selected':'')+'>Cool</option><option value="custom" '+(c.scene==='custom'?'selected':'')+'>Eigenes Bild</option></select></label><label class="field">Hintergrundbild-URL<input type="text" data-field="background" value="'+esc(c.background)+'" placeholder="/local/wohnzimmer.jpg"></label><p class="note">Hintergrundbild wird im Signature-Modus bei „Eigenes Bild“ verwendet. Unterstützt /local/ und HTTPS.</p></div>';
+    if(this._step==='actions')body='<div class="fields"><label><input type="checkbox" data-field="show_brightness" '+(c.show_brightness?'checked':'')+'> Helligkeitsregler anzeigen</label><label><input type="checkbox" data-field="show_status" '+(c.show_status?'checked':'')+'> Status anzeigen</label><p class="note">Licht schalten über Power-Button, Dimmen beim Loslassen.</p></div>';
+    this.shadowRoot.innerHTML='<style>'+editorCss+'</style><section class="editor"><h3>Halo Cards</h3><p class="subtitle">Eine Karte. Viele Möglichkeiten. · Entwicklungs-Vorschau</p><nav class="tabs">'+buttons+'</nav>'+body+'<p class="note">Die Live-Vorschau wird rechts im Home-Assistant-Karteneditor angezeigt.</p></section>';
     this.shadowRoot.querySelectorAll('[data-step]').forEach(el=>el.addEventListener('click',()=>{this._step=el.dataset.step;this._render();}));
     for(const key of ['type','style','size'])this.shadowRoot.querySelectorAll('[data-'+key+']').forEach(el=>
       el.addEventListener('click',()=>this._change(key==='type'?'card_type':key,el.dataset[key])));
     this.shadowRoot.querySelectorAll('[data-field]').forEach(el=>el.addEventListener('change',()=>{
-      this._change(el.dataset.field,el.type==='checkbox'?el.checked:el.value);
+      this._change(el.dataset.field,el.type==='checkbox'?el.checked:el.dataset.field==='glow_strength'?Number(el.value):el.value);
     }));
     this._updatePreview();
   }
