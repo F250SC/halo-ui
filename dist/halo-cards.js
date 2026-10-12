@@ -8,11 +8,16 @@ const CARD_TYPES = [
 ];
 const STYLES = ["minimal", "balanced", "signature"];
 const SIZES = ["compact", "standard", "expanded"];
+const LAMP_PRESETS = {
+  living: { label: "Tischlampe / Wohnzimmer", prefix: "halo-light" },
+  stick: { label: "Stablampe", prefix: "halo-light-stick" },
+  pendant: { label: "Pendellampe", prefix: "halo-light-pendant" }
+};
 const DEFAULTS = {
   type: "custom:halo-cards", card_type: "light", entity: "",
   name: "", style: "balanced", size: "standard",
   accent: "#a178ff", background: "", show_brightness: true, show_status: true,
-  glow_strength: 70, scene: "warm"
+  glow_strength: 70, scene: "warm", lamp_type: "living"
 };
 const esc = value => String(value ?? "").replace(/[&<>"']/g, ch =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
@@ -25,6 +30,7 @@ const normalize = config => {
   c.accent = cleanAccent(c.accent);
   c.glow_strength = Math.min(100,Math.max(0,Number(c.glow_strength)||0));
   c.scene = ["warm","cool","custom"].includes(c.scene) ? c.scene : "warm";
+  c.lamp_type = Object.hasOwn(LAMP_PRESETS,c.lamp_type) ? c.lamp_type : "living";
   c.background = String(c.background||"").trim();
   if (!/^(https?:\/\/|\/local\/)/i.test(c.background) || /[\x00-\x1f"\x27<>]/.test(c.background)) c.background="";
   return c;
@@ -98,7 +104,8 @@ class HaloCards extends HTMLElement {
     const title=c.name||state?.attributes?.friendly_name||"Halo Light";
     const unsupported=c.card_type!=="light";
     const status=unsupported?"Demnächst":!c.entity?"Bitte Licht-Entität wählen":!valid?"Entität nicht gefunden":!available?"Nicht verfügbar":on?"Eingeschaltet":"Ausgeschaltet";
-    const image=c.style==="signature"&&(c.scene==="custom"?c.background:(on?"/hacsfiles/halo-ui/halo-light-on.webp":"/hacsfiles/halo-ui/halo-light-off.webp"));
+    const preset=LAMP_PRESETS[c.lamp_type] || LAMP_PRESETS.living;
+    const image=c.style==="signature"&&(c.scene==="custom" ? c.background : "/hacsfiles/halo-ui/"+preset.prefix+"-"+(on?"on":"off")+".webp");
     const safeImage=image?encodeURI(image).replace(/"/g,"%22").replace(/\x27/g,"%27"):"";
     const vars='--halo-accent:'+c.accent+';--glow:'+(c.glow_strength/100)+';--level:'+level+'%;'+(image?'--halo-image:url(&quot;'+esc(safeImage)+'&quot;);':'');
     const classes=[c.style,c.size,on?"is-on":"is-off","scene-"+c.scene,image?"has-image":"","signature-photo",!dimmable?"no-dimmer":""].join(" ");
@@ -160,7 +167,7 @@ class HaloCardsEditor extends HTMLElement {
     if(this._step==='type')body='<div class="choices">'+choices+'</div><p class="note">Nur eine Halo-Cards-Karte in Home Assistant. Weitere Kartentypen folgen nach Halo Light.</p>';
     if(this._step==='entity')body='<div class="fields"><label class="field">Licht-Entität<select data-field="entity">'+options+'</select></label><label class="field">Anzeigename<input type="text" data-field="name" value="'+esc(c.name)+'" placeholder="Name der Entität übernehmen"></label></div>';
     if(this._step==='design')body='<div class="fields"><label>Halo Adaptive</label><div class="choices">'+styles+'</div><label>Kartengröße</label><div class="choices">'+sizes+'</div><label class="field">Akzentfarbe<input type="color" data-field="accent" value="'+c.accent+'"></label><label class="field">Glow-Intensität: '+c.glow_strength+' %<input type="range" min="0" max="100" data-field="glow_strength" value="'+c.glow_strength+'"></label></div>';
-    if(this._step==='media')body='<div class="fields"><label class="field">Signature-Lichtstimmung<select data-field="scene"><option value="warm" '+(c.scene==='warm'?'selected':'')+'>Warm</option><option value="cool" '+(c.scene==='cool'?'selected':'')+'>Cool</option><option value="custom" '+(c.scene==='custom'?'selected':'')+'>Eigenes Bild</option></select></label><label class="field">Hintergrundbild-URL<input type="text" data-field="background" value="'+esc(c.background)+'" placeholder="/local/wohnzimmer.jpg"></label><p class="note">Hintergrundbild wird im Signature-Modus bei „Eigenes Bild“ verwendet. Unterstützt /local/ und HTTPS.</p></div>';
+    if(this._step==='media')body='<div class="fields"><label class="field">Lampentyp<select data-field="lamp_type">'+Object.entries(LAMP_PRESETS).map(([id,p])=>'<option value="'+id+'" '+(c.lamp_type===id?'selected':'')+'>'+p.label+'</option>').join('')+'</select></label><label class="field">Signature-Lichtstimmung<select data-field="scene"><option value="warm" '+(c.scene==='warm'?'selected':'')+'>Automatische AN/AUS-Bilder</option><option value="cool" '+(c.scene==='cool'?'selected':'')+'>Kühle Farbwirkung (gleiche Bilder)</option><option value="custom" '+(c.scene==='custom'?'selected':'')+'>Eigenes Hintergrundbild</option></select></label><label class="field">Eigenes Hintergrundbild (nur bei „Eigenes Bild“)<input type="text" data-field="background" value="'+esc(c.background)+'" placeholder="/local/wohnzimmer.jpg"></label><p class="note">Bei den mitgelieferten Lampenmotiven wechselt das Bild automatisch bei AN/AUS. Für benutzerdefinierte Bilder wird derzeit dieselbe Bildadresse verwendet.</p></div>';
     if(this._step==='actions')body='<div class="fields"><label><input type="checkbox" data-field="show_brightness" '+(c.show_brightness?'checked':'')+'> Helligkeitsregler anzeigen</label><label><input type="checkbox" data-field="show_status" '+(c.show_status?'checked':'')+'> Status anzeigen</label><p class="note">Licht schalten über Power-Button, Dimmen beim Loslassen.</p></div>';
     this.shadowRoot.innerHTML='<style>'+editorCss+'</style><section class="editor"><h3>Halo Cards</h3><p class="subtitle">Eine Karte. Viele Möglichkeiten. · Entwicklungs-Vorschau</p><nav class="tabs">'+buttons+'</nav>'+body+'<p class="note">Die Live-Vorschau wird rechts im Home-Assistant-Karteneditor angezeigt.</p></section>';
     this.shadowRoot.querySelectorAll('[data-step]').forEach(el=>el.addEventListener('click',()=>{this._step=el.dataset.step;this._render();}));
