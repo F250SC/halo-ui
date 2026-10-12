@@ -160,32 +160,45 @@ function findDashboardHaloObject(value, seen = new WeakSet()) {
 
 // Resolve a single current-view Halo card inside the active Lovelace view.
 // Never guess which card to save if there are multiple matches.
-function findCurrentViewHaloOwner(config) {
-  if (!Array.isArray(config?.views)) return null;
-  const key = currentViewKey();
-  const matching = config.views
-    .map((view, index) => ({ view, index }))
-    .filter(({ view, index }) => key
-      ? String(view?.path || "") === key
-      : index === 0);
-  if (matching.length !== 1) return null;
-
-  const { view, index } = matching[0];
+function findCurrentViewHaloOwner(config, ownerCard) {
+  if (!Array.isArray(config?.views)) {
+    return { error: "The Home Assistant dashboard configuration is not available." };
+  }
+  // The URL route does not always equal the saved view's path.
   const matches = [];
-  function visit(node, path) {
+  const visit = (node, path) => {
     if (!node || typeof node !== "object") return;
     if (!Array.isArray(node) &&
-        (node.type === "custom:halo-ui" || node.type === "halo-ui") &&
-        (node.target?.mode || "current_view") === "current_view") {
-      matches.push({ path, config: node });
+        (node.type === "custom:halo-ui" || node.type === "halo-ui")) {
+      if ((node.target?.mode || "current_view") === "current_view") {
+        matches.push({ path, config: node });
+      }
       return;
     }
-    for (const [key, child] of Object.entries(node)) {
-      if (child && typeof child === "object") visit(child, path.concat(key));
+    for (const [key, value] of Object.entries(node)) {
+      if (value && typeof value === "object") visit(value, path.concat(key));
     }
+  };
+  config.views.forEach((view, i) => visit(view, ["views", String(i)]));
+  if (!matches.length) {
+    return { error: "No current-view Halo UI card was found in this dashboard." };
   }
-  visit(view, ["views", String(index)]);
-  return matches.length === 1 ? matches[0] : null;
+  const fingerprint = value => JSON.stringify(normalizeConfig(value));
+  const expected = fingerprint(ownerCard?._haloUiConfig || {});
+  const sameConfig = matches.filter(item => fingerprint(item.config) === expected);
+  let candidates = sameConfig.length ? sameConfig : matches;
+  if (candidates.length > 1) {
+    const currentPath = currentViewKey();
+    const byPath = candidates.filter(item => {
+      const view = config.views[Number(item.path[1])];
+      return String(view?.path || "").replace(/^\/+|\/+$/g, "") === currentPath;
+    });
+    if (byPath.length === 1) candidates = byPath;
+  }
+  if (candidates.length !== 1) {
+    return { error: "There are " + matches.length + " Halo cards and the clicked one could not be identified safely. Nothing was changed." };
+  }
+  return { owner: candidates[0] };
 }
 
 function valueAtPath(object, path) {
@@ -739,11 +752,14 @@ class HaloDashboardRuntime {
     this._closeRuntimeEditor();
 
     const lovelace = findLovelace();
-    const scopedOwner = ownerCard ? findCurrentViewHaloOwner(lovelace?.config) : null;
-    if (ownerCard && !scopedOwner) {
-      window.alert("Halo UI: Could not identify one unique Halo card in this view. Please check that only one Halo UI card is present, or use Home Assistant's native card editor.");
+    const scopedLookup = ownerCard ? findCurrentViewHaloOwner(lovelace?.config, ownerCard) : null;
+    if (ownerCard && !scopedLookup?.owner) {
+      const reason = scopedLookup?.error || "Unknown card lookup error.";
+      console.warn("[Halo UI] Owner lookup:", reason);
+      window.alert("Halo UI: " + reason);
       return;
     }
+    const scopedOwner = scopedLookup?.owner || null;
     const rawOwner = ownerCard ? scopedOwner.config : findDashboardHaloObject(lovelace?.config);
     const initialConfig = structuredClone(rawOwner || this.config || {});
     const originalScopedConfig = ownerCard ? JSON.stringify(scopedOwner.config) : null;
