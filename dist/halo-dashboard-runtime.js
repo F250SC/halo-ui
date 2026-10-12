@@ -158,6 +158,40 @@ function findDashboardHaloObject(value, seen = new WeakSet()) {
   return null;
 }
 
+// Resolve a single current-view Halo card inside the active Lovelace view.
+// Never guess which card to save if there are multiple matches.
+function findCurrentViewHaloOwner(config) {
+  if (!Array.isArray(config?.views)) return null;
+  const key = currentViewKey();
+  const matching = config.views
+    .map((view, index) => ({ view, index }))
+    .filter(({ view, index }) => key
+      ? String(view?.path || "") === key
+      : index === 0);
+  if (matching.length !== 1) return null;
+
+  const { view, index } = matching[0];
+  const matches = [];
+  function visit(node, path) {
+    if (!node || typeof node !== "object") return;
+    if (!Array.isArray(node) &&
+        (node.type === "custom:halo-ui" || node.type === "halo-ui") &&
+        (node.target?.mode || "current_view") === "current_view") {
+      matches.push({ path, config: node });
+      return;
+    }
+    for (const [key, child] of Object.entries(node)) {
+      if (child && typeof child === "object") visit(child, path.concat(key));
+    }
+  }
+  visit(view, ["views", String(index)]);
+  return matches.length === 1 ? matches[0] : null;
+}
+
+function valueAtPath(object, path) {
+  return path.reduce((value, key) => value?.[key], object);
+}
+
 function replaceDashboardHaloObject(value, replacement, seen = new WeakSet()) {
   if (!value || typeof value !== "object") return value;
   if (seen.has(value)) return value;
@@ -701,13 +735,19 @@ class HaloDashboardRuntime {
     this._editorModal = null;
   }
 
-  _openRuntimeEditor() {
+  _openRuntimeEditor(ownerCard = null) {
     this._closeRuntimeEditor();
 
     const lovelace = findLovelace();
-    const rawOwner = findDashboardHaloObject(lovelace?.config);
+    const scopedOwner = ownerCard ? findCurrentViewHaloOwner(lovelace?.config) : null;
+    if (ownerCard && !scopedOwner) {
+      window.alert("Halo UI: Could not identify one unique Halo card in this view. Please check that only one Halo UI card is present, or use Home Assistant's native card editor.");
+      return;
+    }
+    const rawOwner = ownerCard ? scopedOwner.config : findDashboardHaloObject(lovelace?.config);
     const initialConfig = structuredClone(rawOwner || this.config || {});
-    const viewKey = currentViewKey() || "__dashboard__";
+    const originalScopedConfig = ownerCard ? JSON.stringify(scopedOwner.config) : null;
+    const viewKey = ownerCard ? "__dashboard__" : (currentViewKey() || "__dashboard__");
 
     const context = { tab: "modules", viewKey };
     window.__haloUiPreviewContext = context;
@@ -859,19 +899,34 @@ class HaloDashboardRuntime {
       save.textContent = translateHaloText("Speichere…", this.hass);
 
       try {
-        const nextDashboard = replaceDashboardHaloObject(
-          structuredClone(lovelace.config),
-          draft
-        );
+        const latestConfig = lovelace.config;
+        let nextDashboard;
+        if (ownerCard) {
+          // Do not overwrite a different view/card or changes made while open.
+          if (JSON.stringify(valueAtPath(latestConfig, scopedOwner.path)) !== originalScopedConfig) {
+            throw new Error("The Halo UI card was changed while the editor was open. Reopen the editor and try again.");
+          }
+          nextDashboard = structuredClone(latestConfig);
+          const parent = valueAtPath(nextDashboard, scopedOwner.path.slice(0, -1));
+          if (!parent) throw new Error("The Halo UI card could not be found.");
+          parent[scopedOwner.path[scopedOwner.path.length - 1]] = structuredClone(draft);
+        } else {
+          nextDashboard = replaceDashboardHaloObject(structuredClone(latestConfig), draft);
+        }
 
         await lovelace.saveConfig(nextDashboard);
 
-        this.config = normalizeConfig(draft);
-        this._ownerMissingSince = 0;
-        this.queueApply();
+        if (ownerCard) {
+          ownerCard.setConfig(draft);
+        } else {
+          this.config = normalizeConfig(draft);
+          this._ownerMissingSince = 0;
+          this.queueApply();
+        }
         this._closeRuntimeEditor();
       } catch (error) {
         console.error("[Halo UI] Saving dashboard config failed.", error);
+        window.alert("Halo UI: " + (error?.message || "Saving failed. Please check the browser console."));
         save.disabled = false;
         save.textContent = translateHaloText("Speichern", this.hass);
       }
