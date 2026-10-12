@@ -11,7 +11,8 @@ const SIZES = ["compact", "standard", "expanded"];
 const DEFAULTS = {
   type: "custom:halo-cards", card_type: "light", entity: "",
   name: "", style: "balanced", size: "standard",
-  accent: "#a178ff", background: "", show_brightness: true
+  accent: "#a178ff", background: "", show_brightness: true, show_status: true,
+  glow_strength: 70, scene: "warm"
 };
 const esc = value => String(value ?? "").replace(/[&<>"']/g, ch =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
@@ -22,54 +23,42 @@ const normalize = config => {
   c.style = STYLES.includes(c.style) ? c.style : "balanced";
   c.size = SIZES.includes(c.size) ? c.size : "standard";
   c.accent = cleanAccent(c.accent);
+  c.glow_strength = Math.min(100,Math.max(0,Number(c.glow_strength)||0));
+  c.scene = ["warm","cool","custom"].includes(c.scene) ? c.scene : "warm";
+  c.background = String(c.background||"").trim();
+  if (!/^(https?:\/\/|\/local\/)/i.test(c.background) || /[\x00-\x1f"\x27<>]/.test(c.background)) c.background="";
   return c;
 };
 const cardCss = String.raw`
-  :host { display:block; min-width:0; }
-  ha-card { background:transparent !important; border:0 !important; box-shadow:none !important; overflow:visible; }
-  .halo-card { --halo-accent:#a178ff; color:var(--primary-text-color,#fff); min-height:145px; padding:19px;
-    position:relative; overflow:hidden; border-radius:23px; box-sizing:border-box;
-    background:linear-gradient(140deg,rgba(43,43,63,.9),rgba(17,24,41,.94));
-    border:1px solid rgba(255,255,255,.13); box-shadow:0 16px 36px rgba(0,0,0,.24);
-    font-family:inherit; isolation:isolate; }
-  .halo-card:before { content:""; pointer-events:none; position:absolute; inset:0; border-radius:inherit;
-    background:radial-gradient(circle at 8% 5%,color-mix(in srgb,var(--halo-accent) 19%,transparent),transparent 60%);
-    opacity:.62; z-index:-1; }
-  .halo-card.minimal { background:var(--ha-card-background,var(--card-background-color,#222630));
-    border-color:var(--divider-color,rgba(255,255,255,.13)); box-shadow:none; }
-  .halo-card.minimal:before { opacity:0; }
-  .halo-card.signature { background:linear-gradient(125deg,rgba(27,22,47,.92),rgba(11,29,48,.93));
-    border-color:color-mix(in srgb,var(--halo-accent) 46%,transparent);
-    box-shadow:0 18px 48px rgba(0,0,0,.35),0 0 23px color-mix(in srgb,var(--halo-accent) 14%,transparent); }
-  .halo-card.signature:before { opacity:1; }
-  .halo-card.is-off:before { opacity:.07; }
-  .halo-card.compact { min-height:112px; padding:14px; border-radius:18px; }
-  .halo-card.expanded { min-height:193px; padding:24px; }
-  .head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
-  .identity { display:flex; align-items:center; min-width:0; gap:14px; }
-  .lamp { flex:none; display:grid; place-items:center; width:54px; height:54px; border-radius:17px;
-    background:color-mix(in srgb,var(--halo-accent) 16%,transparent); color:var(--halo-accent); }
-  .lamp ha-icon { --mdc-icon-size:30px; }
-  .is-on .lamp { filter:drop-shadow(0 0 9px color-mix(in srgb,var(--halo-accent) 60%,transparent)); }
-  .name { font-weight:650; font-size:16px; line-height:1.4; overflow-wrap:anywhere; }
-  .status { margin-top:4px; opacity:.75; font-size:12px; }
-  .right { display:flex; align-items:center; gap:12px; }
-  .value { font-size:14px; font-weight:650; white-space:nowrap; }
-  .power { width:44px; height:44px; flex:none; border-radius:50%; border:1px solid rgba(255,255,255,.2);
-    background:rgba(255,255,255,.07); color:inherit; cursor:pointer; display:grid; place-items:center; }
-  .is-on .power { background:color-mix(in srgb,var(--halo-accent) 26%,#202036);
-    box-shadow:0 0 17px color-mix(in srgb,var(--halo-accent) 38%,transparent); }
-  .power:focus-visible, input:focus-visible { outline:2px solid var(--halo-accent); outline-offset:3px; }
-  .power:disabled, input:disabled { opacity:.45; cursor:not-allowed; }
-  .brightness { display:block; margin-top:20px; }
-  input[type=range] { accent-color:var(--halo-accent); width:100%; margin:0; height:24px; cursor:pointer; }
-  .compact .lamp { width:42px; height:42px; border-radius:12px; }
-  .compact .lamp ha-icon { --mdc-icon-size:24px; }
-  .compact .brightness { margin-top:9px; }
-  .expanded .lamp { width:70px; height:70px; }
-  .expanded .brightness { margin-top:34px; }
-  .empty { font-size:13px; opacity:.75; line-height:1.6; }
-  @media (prefers-reduced-motion:no-preference) { .halo-card, .power, .lamp { transition:background .2s,box-shadow .2s,filter .2s; } }
+:host{display:block;min-width:0}ha-card{background:transparent!important;border:0!important;box-shadow:none!important;overflow:visible}
+.halo-card{--halo-accent:#a178ff;--glow:.7;--level:65%;--light-color:#ffcc91;position:relative;isolation:isolate;overflow:hidden;box-sizing:border-box;min-height:170px;padding:18px;border-radius:23px;
+color:#fff;background:linear-gradient(120deg,#292a3c,#131a2b);border:1px solid rgba(255,255,255,.17);box-shadow:0 16px 33px rgba(0,0,0,.28);font-family:inherit}
+.halo-card:before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:var(--glow);background:radial-gradient(ellipse at 13% 67%,color-mix(in srgb,var(--light-color) 34%,transparent),transparent 59%),radial-gradient(ellipse at 100% 100%,color-mix(in srgb,var(--halo-accent) 40%,transparent),transparent 75%)}
+.is-off:before{opacity:.04}.minimal{background:linear-gradient(130deg,#282b36,#1b1e2a);box-shadow:none}.minimal:before{opacity:0}
+.signature{border-color:color-mix(in srgb,var(--halo-accent) 48%,#39415a);box-shadow:0 15px 36px rgba(0,0,0,.3),0 0 20px color-mix(in srgb,var(--halo-accent) 14%,transparent)}
+.scene-cool{--light-color:#78cbff;background:linear-gradient(130deg,#172d46,#13172e)}.has-image{background-image:linear-gradient(90deg,rgba(10,13,29,.82),rgba(10,13,29,.5)),var(--halo-image);background-position:center;background-size:cover}
+.frame{display:grid;grid-template-columns:minmax(65px,105px) minmax(0,1fr);gap:17px;min-width:0}
+.object{display:grid;place-items:center;position:relative;overflow:hidden;min-height:128px;border-radius:17px;border:1px solid rgba(255,255,255,.16);background:linear-gradient(140deg,rgba(255,255,255,.11),rgba(255,255,255,.02));box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+.object:before{content:"";position:absolute;bottom:3px;width:65%;height:25px;background:var(--light-color);filter:blur(16px);opacity:var(--glow)}.is-off .object:before,.minimal .object:before{opacity:0}
+.lamp-svg{height:115px;max-width:90%;filter:drop-shadow(0 5px 7px rgba(0,0,0,.3))}
+.lamp-shade{fill:var(--light-color)}.is-off .lamp-shade{fill:#a5a4b5}.lamp-metal{fill:#ded6dc}
+.lamp-glow{fill:var(--light-color);opacity:calc(var(--glow) * .36)}.is-off .lamp-glow,.minimal .lamp-glow{opacity:0}
+.info{display:flex;flex-direction:column;justify-content:space-between;min-width:0;gap:17px;padding:7px 0}
+.heading{display:flex;justify-content:space-between;gap:10px}.title{font-weight:650;font-size:16px;overflow-wrap:anywhere;line-height:1.35}
+.status{display:flex;align-items:center;gap:7px;color:rgba(255,255,255,.72);font-size:12px;margin-top:9px}.dot{height:8px;width:8px;border-radius:50%;background:var(--halo-accent);box-shadow:0 0 9px var(--halo-accent)}
+.is-off .dot{background:#9195a5;box-shadow:none}.percent{font-size:13px;white-space:nowrap;padding-top:3px}
+.controls{display:flex;align-items:center;gap:15px}.slider-wrap{flex:1;min-width:0}
+.brightness{appearance:none;-webkit-appearance:none;width:100%;height:9px;margin:0;border-radius:20px;cursor:pointer;background:linear-gradient(90deg,var(--halo-accent) 0%,#c9a9ff var(--level),rgba(200,200,230,.22) var(--level),rgba(200,200,230,.22) 100%)}
+.brightness::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:20px;height:20px;background:#fafaff;border-radius:50%;box-shadow:0 0 13px rgba(239,212,255,.6)}
+.brightness::-moz-range-thumb{width:20px;height:20px;background:#fafaff;border:0;border-radius:50%;box-shadow:0 0 13px rgba(239,212,255,.6)}
+.brightness:disabled{opacity:.35;cursor:not-allowed}.power{flex:none;display:grid;place-items:center;width:51px;height:51px;border-radius:50%;border:1px solid rgba(255,255,255,.26);background:#292d43;color:white;cursor:pointer}
+.is-on .power{border-color:color-mix(in srgb,var(--halo-accent) 70%,white);background:color-mix(in srgb,var(--halo-accent) 42%,#252748);box-shadow:0 0 20px color-mix(in srgb,var(--halo-accent) 50%,transparent)}
+.power ha-icon{--mdc-icon-size:26px}.power:disabled{opacity:.45;cursor:not-allowed}.power:focus-visible,.brightness:focus-visible{outline:2px solid white;outline-offset:3px}
+.compact{padding:12px;min-height:117px}.compact .frame{grid-template-columns:60px minmax(0,1fr);gap:10px}.compact .object{min-height:89px}.compact .lamp-svg{height:83px}
+.compact .info{padding:0;gap:6px}.compact .title{font-size:14px}.compact .status{margin-top:3px}.compact .power{height:37px;width:37px}.compact .power ha-icon{--mdc-icon-size:21px}
+.expanded{padding:22px;min-height:210px}.expanded .frame{grid-template-columns:132px minmax(0,1fr);gap:22px}.expanded .object{min-height:164px}.expanded .lamp-svg{height:145px}.expanded .title{font-size:19px}
+@media(max-width:420px){.halo-card{padding:12px}.frame{grid-template-columns:70px minmax(0,1fr);gap:11px}.object{min-height:103px}.lamp-svg{height:96px}.info{gap:7px}.title{font-size:14px}.controls{gap:8px}.power{width:39px;height:39px}.power ha-icon{--mdc-icon-size:21px}.expanded .frame{grid-template-columns:88px minmax(0,1fr)}}
+@media(prefers-reduced-motion:no-preference){.halo-card,.power{transition:box-shadow .2s,background .2s}}
 `;
 class HaloCards extends HTMLElement {
   constructor() {
@@ -94,22 +83,23 @@ class HaloCards extends HTMLElement {
     finally { this._busy=false; }
   }
   _render() {
-    const c=this._config, state=this._state(), valid=state && c.entity.startsWith("light.");
-    const available=valid && !["unavailable","unknown"].includes(state.state);
-    const on=available && state.state==="on";
-    const level=on ? Math.round((Number(state.attributes?.brightness)||0)/255*100) : 0;
-    const title=c.name || state?.attributes?.friendly_name || "Halo Light";
+    const c=this._config,state=this._state(),valid=!!state&&c.entity.startsWith("light.");
+    const available=valid&&!["unavailable","unknown"].includes(state.state),on=available&&state.state==="on";
+    const dimmable=available&&(Array.isArray(state.attributes?.supported_color_modes)
+      ? state.attributes.supported_color_modes.some(mode=>mode!=="onoff"):state.attributes?.brightness!==undefined);
+    const level=on?Math.round((Number(state.attributes?.brightness)||255)/255*100):0;
+    const title=c.name||state?.attributes?.friendly_name||"Halo Light";
     const unsupported=c.card_type!=="light";
-    this.shadowRoot.innerHTML='<style>'+cardCss+'</style><ha-card><div class="halo-card '+esc(c.style)+' '+esc(c.size)+(on?' is-on':' is-off')+'" style="--halo-accent:'+c.accent+'">'+
-      '<div class="head"><div class="identity"><div class="lamp"><ha-icon icon="'+(unsupported?'mdi:layers-outline':'mdi:lamp')+'"></ha-icon></div>'+
-      '<div><div class="name">'+esc(title)+'</div><div class="status">'+esc(unsupported?'Dieser Kartentyp ist in Vorbereitung':!c.entity?'Bitte eine Licht-Entität wählen':!valid?'Entität nicht gefunden':!available?'Nicht verfügbar':on?'Eingeschaltet':'Ausgeschaltet')+'</div></div></div>'+
-      (unsupported?'':'<div class="right"><span class="value">'+(available?level+' %':'–')+'</span><button class="power" type="button" title="Licht schalten" aria-label="Licht schalten" '+(!available?'disabled':'')+'><ha-icon icon="mdi:power"></ha-icon></button></div>')+
-      '</div>'+(!unsupported && c.show_brightness?'<label class="brightness"><input type="range" min="1" max="100" value="'+(level||1)+'" aria-label="Helligkeit" '+(!available?'disabled':'')+'></label>':'')+
-      (unsupported?'<p class="empty">Du kannst das Design bereits auswählen. Die Funktion folgt in einer späteren Entwicklungsstufe.</p>':'')+
-      '</div></ha-card>';
-    const button=this.shadowRoot.querySelector('.power');
-    button?.addEventListener('click',()=>this._call(on?'turn_off':'turn_on',{}));
-    const slider=this.shadowRoot.querySelector('input[type=range]');
+    const status=unsupported?"Demnächst":!c.entity?"Bitte Licht-Entität wählen":!valid?"Entität nicht gefunden":!available?"Nicht verfügbar":on?"Eingeschaltet":"Ausgeschaltet";
+    const image=c.style==="signature"&&c.scene==="custom"&&c.background;
+    const vars='--halo-accent:'+c.accent+';--glow:'+(c.glow_strength/100)+';--level:'+level+'%;'+(image?'--halo-image:url(&quot;'+esc(c.background)+'&quot;);':'');
+    const classes=[c.style,c.size,on?"is-on":"is-off","scene-"+c.scene,image?"has-image":""].join(" ");
+    const lamp='<svg class="lamp-svg" viewBox="0 0 100 126" role="img" aria-label="Lampe"><ellipse class="lamp-glow" cx="50" cy="50" rx="43" ry="39"/><path class="lamp-shade" d="M18 50C20 23 31 15 50 15S80 23 82 50Z"/><rect class="lamp-metal" x="48" y="50" width="4" height="52" rx="2"/><ellipse class="lamp-metal" cx="50" cy="105" rx="23" ry="5"/><path fill="rgba(255,255,255,.25)" d="M28 44C32 26 40 22 49 21C37 28 35 36 33 44Z"/></svg>';
+    this.shadowRoot.innerHTML='<style>'+cardCss+'</style><ha-card><div class="halo-card '+classes+'" style="'+vars+'"><div class="frame"><div class="object">'+(unsupported?'<ha-icon icon="mdi:layers-outline"></ha-icon>':lamp)+'</div><div class="info"><div class="heading"><div><div class="title">'+esc(title)+'</div>'+(c.show_status?'<div class="status"><span class="dot"></span>'+esc(status)+'</div>':'')+'</div><span class="percent">'+(unsupported?'':available?(dimmable?level+' %':on?'An':'Aus'):'–')+'</span></div>'+
+    (unsupported?'<div class="status">Weitere Kartentypen folgen.</div>':'<div class="controls">'+(c.show_brightness&&dimmable?'<div class="slider-wrap"><input class="brightness" type="range" min="1" max="100" value="'+(level||1)+'" aria-label="Helligkeit" '+(!available?'disabled':'')+'></div>':'<div class="slider-wrap"></div>')+'<button class="power" type="button" aria-label="Licht schalten" '+(!available?'disabled':'')+'><ha-icon icon="mdi:power"></ha-icon></button></div>')+'</div></div></div></ha-card>';
+    this.shadowRoot.querySelector('.power')?.addEventListener('click',()=>this._call(on?'turn_off':'turn_on',{}));
+    const slider=this.shadowRoot.querySelector('.brightness');
+    slider?.addEventListener('input',event=>event.target.style.setProperty('--level',event.target.value+'%'));
     slider?.addEventListener('change',event=>this._call('turn_on',{brightness_pct:Number(event.target.value)}));
   }
 }
