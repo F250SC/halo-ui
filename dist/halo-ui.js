@@ -9,5 +9,6 @@ import "./halo-dashboard-header.js";
 import "./halo-dashboard-runtime.js";
 import "./halo-ui-editor.js";
 import "./halo-ui-controller.js";
+import "./halo-cards.js";
 
 console.info("%c HALO UI v0.10.49 ", "background:#8a2be2;color:white;border-radius:5px;padding:3px 7px;font-weight:700");
