@@ -496,6 +496,7 @@ class HaloDashboardRuntime {
     this._editButton = null;
     this._editorModal = null;
     this._scopedEditorOpen = false;
+    this._modalWatch = null;
     this._lastActiveView = null;
 
     this._onConfig = event =>
@@ -576,6 +577,9 @@ class HaloDashboardRuntime {
   }
 
   shutdown() {
+    // A current-view Halo editor is not a dashboard-wide owner. Do not
+    // tear down its host runtime while the independent dialog is open.
+    if (this._scopedEditorOpen && this._editorModal?.isConnected) return;
     this.config = null;
     this._ownerMissingSince = 0;
     this._suspendVisualModules();
@@ -747,6 +751,8 @@ class HaloDashboardRuntime {
   }
 
   _closeRuntimeEditor() {
+    this._modalWatch?.disconnect();
+    this._modalWatch = null;
     this._editorModal?.remove();
     this._editorModal = null;
     this._scopedEditorOpen = false;
@@ -964,9 +970,29 @@ class HaloDashboardRuntime {
     document.body.appendChild(backdrop);
     this._editorModal = backdrop;
     this._scopedEditorOpen = !!ownerCard;
+    // Diagnose unexpected DOM removal (for example by another frontend
+    // extension). Do not silently reattach a discarded editor.
+    this._modalWatch?.disconnect();
+    if (ownerCard) {
+      this._modalWatch = new MutationObserver(() => {
+        if (this._editorModal === backdrop && !backdrop.isConnected) {
+          console.error("[Halo UI] Test editor was removed externally.", {
+            scoped: this._scopedEditorOpen,
+            dashboardConfig: !!this.config,
+            route: location.pathname
+          });
+          this._modalWatch?.disconnect();
+          this._modalWatch = null;
+        }
+      });
+      this._modalWatch.observe(document.body, { childList: true });
+    }
   }
 
   restoreOrDiscover() {
+    // The dashboard-wide discovery poll must not dismantle an editor
+    // belonging to a current-view card. The modal owns its own state.
+    if (this._scopedEditorOpen && this._editorModal?.isConnected) return false;
     const lovelaceConfig = findLovelaceConfig();
 
     // HA can briefly expose no complete Lovelace config during transitions.
@@ -1005,6 +1031,7 @@ class HaloDashboardRuntime {
     const config = normalizeConfig(rawConfig);
 
     if (config.enabled === false || config.target?.mode !== "dashboard") {
+      if (this._scopedEditorOpen && this._editorModal?.isConnected) return;
       this.shutdown();
       return;
     }
