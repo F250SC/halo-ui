@@ -1,7 +1,6 @@
 // Halo Cards — independent Lovelace card family. Preview version: Halo Light.
 const CARD_TYPES = [
   { id: "light", label: "Licht", icon: "mdi:lightbulb-outline" },
-  { id: "vacuum", label: "Staubsauger", icon: "mdi:robot-vacuum" },
   { id: "climate", label: "Klima", icon: "mdi:thermostat", soon: true },
   { id: "room", label: "Raum", icon: "mdi:home-outline", soon: true },
   { id: "media", label: "Medien", icon: "mdi:play-box-outline", soon: true },
@@ -18,7 +17,7 @@ const DEFAULTS = {
   type: "custom:halo-cards", card_type: "light", entity: "",
   name: "", style: "balanced", size: "standard",
   accent: "#a178ff", background: "", show_brightness: true, show_status: true,
-  glow_strength: 70, scene: "warm", lamp_type: "living", navigation_path: "/dashboard-x/vacuum"
+  glow_strength: 70, scene: "warm", lamp_type: "living"
 };
 const esc = value => String(value ?? "").replace(/[&<>"']/g, ch =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
@@ -32,7 +31,6 @@ const normalize = config => {
   c.glow_strength = Math.min(100,Math.max(0,Number(c.glow_strength)||0));
   c.scene = ["warm","cool","custom"].includes(c.scene) ? c.scene : "warm";
   c.lamp_type = Object.hasOwn(LAMP_PRESETS,c.lamp_type) ? c.lamp_type : "living";
-  c.navigation_path = /^\/[a-zA-Z0-9_\-/]*$/.test(String(c.navigation_path||"")) ? String(c.navigation_path) : "/dashboard-x/vacuum";
   c.background = String(c.background||"").trim();
   if (!/^(https?:\/\/|\/local\/)/i.test(c.background) || /[\x00-\x1f"\x27<>]/.test(c.background)) c.background="";
   return c;
@@ -68,74 +66,6 @@ color:#fff;background:linear-gradient(120deg,#292a3c,#131a2b);border:1px solid r
 @media(max-width:420px){.halo-card{padding:12px}.frame{grid-template-columns:70px minmax(0,1fr);gap:11px}.object{min-height:103px}.lamp-svg{height:96px}.info{gap:7px}.title{font-size:14px}.controls{gap:8px}.power{width:39px;height:39px}.power ha-icon{--mdc-icon-size:21px}.expanded .frame{grid-template-columns:88px minmax(0,1fr)}}
 @media(prefers-reduced-motion:no-preference){.halo-card,.power{transition:box-shadow .2s,background .2s}}
 `;
-
-let vacuumCss=String.raw`
-.halo-vacuum{position:relative;isolation:isolate;height:100%;min-height:181px;box-sizing:border-box;overflow:hidden;border-radius:23px;color:#fff;cursor:pointer;
-background:radial-gradient(ellipse at 70% 8%,rgba(86,47,139,.30),transparent 75%),linear-gradient(122deg,#151023 5%,#181326 56%,#101426 100%);
-border:1px solid rgba(189,144,255,.65);box-shadow:0 14px 34px rgba(0,0,0,.34),0 0 20px rgba(131,77,239,.15),inset 0 0 1px rgba(255,255,255,.5);font-family:inherit}
-.halo-vacuum:focus-visible{outline:3px solid #c1a0ff;outline-offset:3px}
-.halo-vacuum:hover{border-color:rgba(221,190,255,.95);box-shadow:0 14px 37px rgba(0,0,0,.38),0 0 28px rgba(171,96,255,.34)}
-.halo-vacuum .vac-aura{position:absolute;inset:0;background:radial-gradient(ellipse at 35% 93%,rgba(166,73,237,.27),transparent 58%);pointer-events:none}
-.halo-vacuum .vac-art-wrap{position:relative;display:flex;align-items:center;justify-content:center;height:72%;padding:4px 17px 0;box-sizing:border-box}
-.halo-vacuum .vac-art{max-width:100%;max-height:100%;filter:drop-shadow(0 12px 11px rgba(0,0,0,.22));overflow:visible}
-.halo-vacuum .vac-text{position:absolute;bottom:13px;left:20px;right:70px;display:flex;flex-direction:column;gap:2px;align-items:flex-start}
-.halo-vacuum .vac-title{font-size:17px;font-weight:720;letter-spacing:.01em;text-shadow:0 1px 6px #08060d}
-.halo-vacuum .vac-status{font-size:12px;color:#e1d8ed;display:flex;align-items:center;gap:6px;white-space:nowrap}
-.halo-vacuum .vac-status i{width:6px;height:6px;border-radius:50%;display:inline-block;box-shadow:0 0 8px currentColor}
-.halo-vacuum .vac-sep{opacity:.45}
-.halo-vacuum .vac-battery{position:absolute;right:14px;top:12px;display:flex;align-items:center;gap:5px;color:#e4d7ff;font-size:11px;background:rgba(15,13,31,.48);border-radius:18px;padding:5px 8px}
-.halo-vacuum .vac-battery-icon{color:#a976ff;font-size:15px;line-height:1}
-.halo-vacuum .vac-chevron{position:absolute;bottom:12px;right:16px;color:#d2b5ff;font-size:28px;line-height:1;opacity:.7}
-.halo-vacuum .vac-robot{transform-origin:102px 102px}
-.halo-vacuum.is-cleaning .vac-robot{animation:vac-drive 5.5s ease-in-out infinite alternate}
-.halo-vacuum.is-returning .vac-robot{animation:vac-return 3.8s ease-in-out infinite alternate}
-.halo-vacuum.is-cleaning .vac-ring,.halo-vacuum.is-returning .vac-ring{animation:vac-pulse 1.3s ease-in-out infinite}
-.halo-vacuum.is-docked .vac-energy{animation:vac-flow 1.5s linear infinite}
-.halo-vacuum.is-cleaning .vac-clean-wave{animation:vac-flow 1s linear infinite}
-@keyframes vac-drive{to{transform:translateX(75px) rotate(10deg)}}
-@keyframes vac-return{to{transform:translateX(29px)}}
-@keyframes vac-pulse{50%{opacity:.9;stroke-width:5px}}
-@keyframes vac-flow{to{stroke-dashoffset:-44}}
-@media(prefers-reduced-motion:reduce){.halo-vacuum *{animation:none!important}}
-@container (max-width:340px){.halo-vacuum .vac-art-wrap{height:70%}.halo-vacuum .vac-text{bottom:10px;left:13px}.halo-vacuum .vac-title{font-size:15px}}
-`;
-
-
-/* Halo Vacuum Signature: photos are pure backgrounds, status overlays remain live. */
-vacuumCss += String.raw`
-.halo-vacuum{
-  background-image:linear-gradient(90deg,rgba(7,8,22,.02) 0%,rgba(12,9,29,.10) 42%,rgba(12,9,31,.70) 100%),var(--vac-photo);
-  background-position:center;
-  background-size:cover;
-  border-color:rgba(181,143,255,.78);
-  box-shadow:0 12px 34px rgba(0,0,0,.34),0 0 24px rgba(160,93,244,.30),inset 0 0 1px rgba(255,255,255,.40);
-  min-height:181px;
-}
-.halo-vacuum .vac-art-wrap{display:none}
-.halo-vacuum .vac-aura{
- background:radial-gradient(ellipse at 22% 87%,rgba(141,74,239,.18),transparent 60%);
- opacity:.85;
-}
-.halo-vacuum .vac-text{
- left:45%;right:16px;bottom:29px;gap:7px;
- text-shadow:0 2px 12px rgba(0,0,0,.78);
-}
-.halo-vacuum .vac-title{font-size:clamp(17px,1.5vw,22px);font-weight:650}
-.halo-vacuum .vac-status{font-size:12px}
-.halo-vacuum .vac-battery{top:14px;right:14px}
-.halo-vacuum .vac-chevron{bottom:8px;right:14px;font-size:24px}
-.halo-vacuum.is-cleaning:before,.halo-vacuum.is-returning:before,.halo-vacuum.is-docked:before{
- content:"";position:absolute;inset:-30%;pointer-events:none;
- background:radial-gradient(ellipse at 31% 65%,rgba(166,103,255,.15),transparent 33%);
- animation:vac-photo-breathe 4.5s ease-in-out infinite alternate;
-}
-.halo-vacuum.is-cleaning:before{animation-duration:2.8s;background:radial-gradient(ellipse at 26% 77%,rgba(87,156,255,.22),transparent 38%)}
-.halo-vacuum.is-returning:before{animation-duration:3.3s;background:radial-gradient(ellipse at 27% 76%,rgba(185,92,255,.20),transparent 38%)}
-@keyframes vac-photo-breathe{from{opacity:.20;transform:translateX(-10px)}to{opacity:1;transform:translateX(12px)}}
-@container (max-width:350px){.halo-vacuum .vac-text{left:45%;bottom:17px}.halo-vacuum .vac-title{font-size:16px}.halo-vacuum .vac-status{font-size:10px}}
-@media(prefers-reduced-motion:reduce){.halo-vacuum:before{animation:none!important}}
-`;
-
 class HaloCards extends HTMLElement {
   constructor() {
     super();
@@ -150,7 +80,7 @@ class HaloCards extends HTMLElement {
   // Ask HA Sections for the full row; unlike CSS width this respects the
   // dashboard's own layout and works without absolute positioning.
   getGridOptions() {
-    return this._config.card_type === "vacuum" ? {columns: 9, rows: 4, min_columns: 6, min_rows: 3} : this._config.style === "signature"
+    return this._config.style === "signature"
       ? { columns: 12, rows: 3, min_columns: 6, min_rows: 3 }
       : { columns: 6, rows: 2, min_columns: 3, min_rows: 2 };
   }
@@ -166,7 +96,6 @@ class HaloCards extends HTMLElement {
     finally { this._busy=false; }
   }
   _render() {
-    if(this._config.card_type==="vacuum"){this._renderVacuum();return;}
     const c=this._config,state=this._state(),valid=!!state&&c.entity.startsWith("light.");
     const available=valid&&!["unavailable","unknown"].includes(state.state),on=available&&state.state==="on";
     const dimmable=available&&(Array.isArray(state.attributes?.supported_color_modes)
@@ -187,71 +116,6 @@ class HaloCards extends HTMLElement {
     const slider=this.shadowRoot.querySelector('.brightness');
     slider?.addEventListener('input',event=>event.target.style.setProperty('--level',event.target.value+'%'));
     slider?.addEventListener('change',event=>this._call('turn_on',{brightness_pct:Number(event.target.value)}));
-  }
-
-  _renderVacuum(){
-    const c=this._config,h=this._hass,states=h?.states||{},entity=states[c.entity],preview=states["input_boolean.z60_preview"]?.state==="on";
-    const pick=(id)=>states[id]?.state;
-    let mode=entity?.state||"unknown";
-    const previewState=pick("input_select.z60_preview_state");
-    if(preview && previewState && previewState!=="real")mode=previewState;
-    let battery=Number(entity?.attributes?.battery_level);
-    if(!Number.isFinite(battery))battery=Number(pick("sensor.z60_ultra_roller_complete_battery_level"));
-    const pb=Number(pick("input_number.z60_preview_battery"));
-    if(preview&&Number.isFinite(pb))battery=pb;
-    battery=Number.isFinite(battery)?Math.min(100,Math.max(0,Math.round(battery))):null;
-    const active=mode==="cleaning",returning=mode==="returning",docked=mode==="docked",paused=mode==="paused";
-    const charging=String(pick("sensor.z60_ultra_roller_complete_charging_state")||"").toLowerCase();
-    const base=String(pick("sensor.z60_ultra_roller_complete_self_wash_base_status")||"").toLowerCase();
-    const drying=String(pick("sensor.z60_ultra_roller_complete_drying_progress")||"").toLowerCase();
-    const pdock=pick("input_select.z60_preview_dockmode");
-    let isDrying=drying.includes("dry")||drying.includes("trock")||base.includes("dry")||base.includes("trock");
-    let isCharging=charging.includes("charg")||charging.includes("lad")||(docked&&battery!==null&&battery<99);
-    if(preview&&pdock&&pdock!=="auto"){isDrying=pdock==="drying";isCharging=pdock==="charging";}
-    const label=!entity?"Entität nicht gefunden":mode==="unavailable"?"Nicht verfügbar":active?"Reinigt":returning?"Kehrt zurück":paused?"Pausiert":docked?(isDrying?"Trocknet":isCharging?"Lädt":"Angedockt"):"Bereit";
-    const name=c.name||entity?.attributes?.friendly_name||"Staubsauger";
-    const level=battery===null?"–":battery+" %";
-    const robot=String.raw`<g class="vac-robot">
-      <ellipse cx="102" cy="160" rx="55" ry="10" fill="#000" opacity=".36"/>
-      <circle cx="102" cy="102" r="57" fill="url(#vac-body)" stroke="#9e93c8" stroke-opacity=".5" stroke-width="2"/>
-      <circle cx="102" cy="102" r="50" fill="none" stroke="#e5ceff" stroke-opacity=".10" stroke-width="4"/>
-      <circle cx="102" cy="74" r="18" fill="#111423" stroke="#cfbafa" stroke-opacity=".65" stroke-width="3"/>
-      <circle cx="102" cy="74" r="11" fill="#28273e"/>
-      <path d="M95 77 L102 69 L109 77 M97 76 V82 H107 V76" fill="none" stroke="#e8dcff" stroke-width="2" stroke-linejoin="round"/>
-      <text x="102" y="134" text-anchor="middle" fill="#f8ecff" opacity=".58" font-size="11" font-weight="700" letter-spacing="1.5">MOVA</text>
-      <circle class="vac-ring" cx="102" cy="102" r="58" fill="none" stroke="#bd72ff" stroke-width="3" opacity=".25"/>
-    </g>`;
-    const dock=String.raw`<g class="vac-dock">
-      <rect x="209" y="25" width="114" height="148" rx="19" fill="url(#vac-dock)" stroke="#a18bc2" stroke-opacity=".32" stroke-width="2"/>
-      <rect x="220" y="36" width="92" height="24" rx="11" fill="#0d1020"/>
-      <text x="266" y="52" text-anchor="middle" fill="#b7a7dd" opacity=".7" font-size="10" letter-spacing="2">MOVA</text>
-      <rect x="221" y="70" width="90" height="35" rx="11" fill="#343348" stroke="#b8a9da" stroke-opacity=".14"/>
-      <rect x="221" y="112" width="90" height="45" rx="10" fill="#151728" stroke="#b8a9da" stroke-opacity=".3"/>
-      <path d="M231 117 H301" stroke="#d5c2f0" stroke-opacity=".16" stroke-width="3"/>
-    </g>`;
-    const svg='<svg class="vac-art" viewBox="0 0 355 198" role="img" aria-label="MOVA Staubsauger und Station"><defs>'+
-      '<radialGradient id="vac-body"><stop stop-color="#414055"/><stop offset=".64" stop-color="#171a29"/><stop offset="1" stop-color="#090b15"/></radialGradient>'+
-      '<linearGradient id="vac-dock" x2="0" y2="1"><stop stop-color="#343044"/><stop offset="1" stop-color="#0d101f"/></linearGradient>'+
-      '<linearGradient id="vac-wire"><stop stop-color="#fc99e2"/><stop offset="1" stop-color="#8a4cf9"/></linearGradient>'+
-      '</defs><ellipse cx="178" cy="184" rx="167" ry="9" fill="#050516" opacity=".3"/>'+
-      (active||paused?robot:(returning?dock+robot:robot+dock))+
-      (docked?'<path class="vac-energy" d="M162 122 Q188 134 208 127" fill="none" stroke="url(#vac-wire)" stroke-width="5" stroke-dasharray="9 13" stroke-linecap="round"/>':'')+
-      (active?'<path class="vac-clean-wave" d="M48 111 Q6 76 51 49 M157 108 Q202 73 159 48" fill="none" stroke="#ae7aff" stroke-opacity=".6" stroke-width="5" stroke-dasharray="8 14"/>':'')+
-      '</svg>';
-    const statusColor=active?"#d8a4ff":docked?"#83dec2":returning?"#bca4ff":"#aba4bf";
-    const classes=(active?"is-cleaning ":returning?"is-returning ":paused?"is-paused ":"")+(docked?"is-docked":"");
-    const visualState=active?"cleaning":returning?"returning":paused?"paused":docked?"docked":"paused";
-    const sceneUrl="/hacsfiles/halo-ui/halo-vacuum-"+visualState+".webp";
-    this.shadowRoot.innerHTML='<style>'+cardCss+vacuumCss+'</style><ha-card><article class="halo-vacuum '+classes+'" style="--vac-photo:url(&quot;'+sceneUrl+'&quot;)" tabindex="0" role="link" aria-label="'+esc(name)+' – '+esc(label)+'. Staubsauger-Dashboard öffnen">'+
-      '<div class="vac-aura"></div><div class="vac-art-wrap">'+svg+'</div><div class="vac-text"><span class="vac-title">'+esc(name)+'</span>'+
-      '<span class="vac-status"><i style="background:'+statusColor+'"></i>'+esc(label)+' <span class="vac-sep">·</span> '+esc(level)+'</span></div>'+
-      '<div class="vac-battery" style="--bat:'+(battery??0)+'%"><span class="vac-battery-icon">ϟ</span><span>'+esc(level)+'</span></div>'+
-      '<span class="vac-chevron" aria-hidden="true">›</span></article></ha-card>';
-    const root=this.shadowRoot.querySelector(".halo-vacuum");
-    const navigate=()=>{if(!c.navigation_path)return;history.pushState(null,"",c.navigation_path);window.dispatchEvent(new Event("location-changed"));};
-    root?.addEventListener("click",navigate);
-    root?.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();navigate();}});
-    root?.addEventListener("contextmenu",e=>{e.preventDefault();root.dispatchEvent(new CustomEvent("hass-more-info",{detail:{entityId:c.entity},bubbles:true,composed:true}));});
   }
 }
 // additional signature styles appended to card CSS
@@ -297,17 +161,14 @@ class HaloCardsEditor extends HTMLElement {
     const choices=CARD_TYPES.map(t=>'<button type="button" class="choice '+(t.id===c.card_type?'selected':'')+'" data-type="'+t.id+'" '+(t.soon?'disabled':'')+'><ha-icon icon="'+t.icon+'"></ha-icon>'+t.label+(t.soon?'<small>Demnächst</small>':'<small>Jetzt verfügbar</small>')+'</button>').join('');
     const styles=STYLES.map(s=>'<button type="button" class="choice '+(s===c.style?'selected':'')+'" data-style="'+s+'"><ha-icon icon="mdi:palette-outline"></ha-icon>'+s[0].toUpperCase()+s.slice(1)+'</button>').join('');
     const sizes=SIZES.map(s=>'<button type="button" class="choice '+(s===c.size?'selected':'')+'" data-size="'+s+'">'+({compact:"Kompakt",standard:"Standard",expanded:"Erweitert"}[s])+'</button>').join('');
-    const isVac=c.card_type==='vacuum';
-    const entities=Object.keys(this._hass?.states||{}).filter(key=>key.startsWith(isVac?'vacuum.':'light.')).sort();
-    const options='<option value="">'+(isVac?'Staubsauger auswählen…':'Licht auswählen…')+'</option>'+entities.map(id=>'<option value="'+esc(id)+'" '+(id===c.entity?'selected':'')+'>'+esc(this._hass.states[id]?.attributes?.friendly_name||id)+' ('+esc(id)+')</option>').join('');
+    const entities=Object.keys(this._hass?.states||{}).filter(key=>key.startsWith('light.')).sort();
+    const options='<option value="">Licht auswählen…</option>'+entities.map(id=>'<option value="'+esc(id)+'" '+(id===c.entity?'selected':'')+'>'+esc(this._hass.states[id]?.attributes?.friendly_name||id)+' ('+esc(id)+')</option>').join('');
     let body='';
-    if(this._step==='type')body='<div class="choices">'+choices+'</div><p class="note">Halo Light und Halo Vacuum verfügbar – alles über denselben Karten-Eintrag.</p>'; 
-    if(this._step==='entity')body='<div class="fields"><label class="field">'+(isVac?'Staubsauger':'Licht')+'-Entität<select data-field="entity">'+options+'</select></label><label class="field">Anzeigename<input type="text" data-field="name" value="'+esc(c.name)+'" placeholder="Name der Entität übernehmen"></label></div>'; 
+    if(this._step==='type')body='<div class="choices">'+choices+'</div><p class="note">Nur eine Halo-Cards-Karte in Home Assistant. Weitere Kartentypen folgen nach Halo Light.</p>';
+    if(this._step==='entity')body='<div class="fields"><label class="field">Licht-Entität<select data-field="entity">'+options+'</select></label><label class="field">Anzeigename<input type="text" data-field="name" value="'+esc(c.name)+'" placeholder="Name der Entität übernehmen"></label></div>';
     if(this._step==='design')body='<div class="fields"><label>Halo Adaptive</label><div class="choices">'+styles+'</div><label>Kartengröße</label><div class="choices">'+sizes+'</div><label class="field">Akzentfarbe<input type="color" data-field="accent" value="'+c.accent+'"></label><label class="field">Glow-Intensität: '+c.glow_strength+' %<input type="range" min="0" max="100" data-field="glow_strength" value="'+c.glow_strength+'"></label></div>';
-    if(isVac&&this._step==='media')body='<p class="note">Halo Vacuum verwendet die animierte MOVA-Darstellung und benötigt keine Bilddateien. Status und Akku kommen von Home Assistant.</p>';
-    if(!isVac&&this._step==='media')body='<div class="fields"><label class="field">Lampentyp<select data-field="lamp_type">'+Object.entries(LAMP_PRESETS).map(([id,p])=>'<option value="'+id+'" '+(c.lamp_type===id?'selected':'')+'>'+p.label+'</option>').join('')+'</select></label><label class="field">Signature-Lichtstimmung<select data-field="scene"><option value="warm" '+(c.scene==='warm'?'selected':'')+'>Automatische AN/AUS-Bilder</option><option value="cool" '+(c.scene==='cool'?'selected':'')+'>Kühle Farbwirkung (gleiche Bilder)</option><option value="custom" '+(c.scene==='custom'?'selected':'')+'>Eigenes Hintergrundbild</option></select></label><label class="field">Eigenes Hintergrundbild (nur bei „Eigenes Bild“)<input type="text" data-field="background" value="'+esc(c.background)+'" placeholder="/local/wohnzimmer.jpg"></label><p class="note">Bei den mitgelieferten Lampenmotiven wechselt das Bild automatisch bei AN/AUS. Für benutzerdefinierte Bilder wird derzeit dieselbe Bildadresse verwendet.</p></div>';
-    if(isVac&&this._step==='actions')body='<div class="fields"><label class="field">Dashboard beim Antippen öffnen<input type="text" data-field="navigation_path" value="'+esc(c.navigation_path)+'" placeholder="/dashboard-x/vacuum"></label><p class="note">Antippen öffnet das Dashboard. Rechtsklick zeigt Entitätsdetails. Keine Start-, Pause- oder Docking-Buttons.</p></div>';
-    if(!isVac&&this._step==='actions')body='<div class="fields"><label><input type="checkbox" data-field="show_brightness" '+(c.show_brightness?'checked':'')+'> Helligkeitsregler anzeigen</label><label><input type="checkbox" data-field="show_status" '+(c.show_status?'checked':'')+'> Status anzeigen</label><p class="note">Licht schalten über Power-Button, Dimmen beim Loslassen.</p></div>';
+    if(this._step==='media')body='<div class="fields"><label class="field">Lampentyp<select data-field="lamp_type">'+Object.entries(LAMP_PRESETS).map(([id,p])=>'<option value="'+id+'" '+(c.lamp_type===id?'selected':'')+'>'+p.label+'</option>').join('')+'</select></label><label class="field">Signature-Lichtstimmung<select data-field="scene"><option value="warm" '+(c.scene==='warm'?'selected':'')+'>Automatische AN/AUS-Bilder</option><option value="cool" '+(c.scene==='cool'?'selected':'')+'>Kühle Farbwirkung (gleiche Bilder)</option><option value="custom" '+(c.scene==='custom'?'selected':'')+'>Eigenes Hintergrundbild</option></select></label><label class="field">Eigenes Hintergrundbild (nur bei „Eigenes Bild“)<input type="text" data-field="background" value="'+esc(c.background)+'" placeholder="/local/wohnzimmer.jpg"></label><p class="note">Bei den mitgelieferten Lampenmotiven wechselt das Bild automatisch bei AN/AUS. Für benutzerdefinierte Bilder wird derzeit dieselbe Bildadresse verwendet.</p></div>';
+    if(this._step==='actions')body='<div class="fields"><label><input type="checkbox" data-field="show_brightness" '+(c.show_brightness?'checked':'')+'> Helligkeitsregler anzeigen</label><label><input type="checkbox" data-field="show_status" '+(c.show_status?'checked':'')+'> Status anzeigen</label><p class="note">Licht schalten über Power-Button, Dimmen beim Loslassen.</p></div>';
     this.shadowRoot.innerHTML='<style>'+editorCss+'</style><section class="editor"><h3>Halo Cards</h3><p class="subtitle">Eine Karte. Viele Möglichkeiten. · Entwicklungs-Vorschau</p><nav class="tabs">'+buttons+'</nav>'+body+'<p class="note">Die Live-Vorschau wird rechts im Home-Assistant-Karteneditor angezeigt.</p></section>';
     this.shadowRoot.querySelectorAll('[data-step]').forEach(el=>el.addEventListener('click',()=>{this._step=el.dataset.step;this._render();}));
     for(const key of ['type','style','size'])this.shadowRoot.querySelectorAll('[data-'+key+']').forEach(el=>
