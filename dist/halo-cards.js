@@ -92,7 +92,7 @@ class HaloCards extends HTMLElement {
     const unsupported=c.card_type!=="light";
     const status=unsupported?"Demnächst":!c.entity?"Bitte Licht-Entität wählen":!valid?"Entität nicht gefunden":!available?"Nicht verfügbar":on?"Eingeschaltet":"Ausgeschaltet";
     const image=c.style==="signature"&&(c.scene==="custom"?c.background:"/hacsfiles/halo-ui/halo-light-signature.webp");
-    const safeImage=image?String(image).replace(/[\\x00-\\x1f"'<>\\\\]/g,""):"";
+    const safeImage=image?encodeURI(image).replace(/"/g,"%22").replace(/\x27/g,"%27"):"";
     const vars='--halo-accent:'+c.accent+';--glow:'+(c.glow_strength/100)+';--level:'+level+'%;'+(image?'--halo-image:url(&quot;'+esc(safeImage)+'&quot;);':'');
     const classes=[c.style,c.size,on?"is-on":"is-off","scene-"+c.scene,image?"has-image":"","signature-photo"].join(" ");
     const lamp='<svg class="lamp-svg" viewBox="0 0 100 126" role="img" aria-label="Lampe"><ellipse class="lamp-glow" cx="50" cy="50" rx="43" ry="39"/><path class="lamp-shade" d="M18 50C20 23 31 15 50 15S80 23 82 50Z"/><rect class="lamp-metal" x="48" y="50" width="4" height="52" rx="2"/><ellipse class="lamp-metal" cx="50" cy="105" rx="23" ry="5"/><path fill="rgba(255,255,255,.25)" d="M28 44C32 26 40 22 49 21C37 28 35 36 33 44Z"/></svg>';
