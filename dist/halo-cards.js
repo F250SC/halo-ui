@@ -69,7 +69,7 @@ color:#fff;background:linear-gradient(120deg,#292a3c,#131a2b);border:1px solid r
 @media(prefers-reduced-motion:no-preference){.halo-card,.power{transition:box-shadow .2s,background .2s}}
 `;
 
-const vacuumCss=String.raw`
+let vacuumCss=String.raw`
 .halo-vacuum{position:relative;isolation:isolate;height:100%;min-height:181px;box-sizing:border-box;overflow:hidden;border-radius:23px;color:#fff;cursor:pointer;
 background:radial-gradient(ellipse at 70% 8%,rgba(86,47,139,.30),transparent 75%),linear-gradient(122deg,#151023 5%,#181326 56%,#101426 100%);
 border:1px solid rgba(189,144,255,.65);box-shadow:0 14px 34px rgba(0,0,0,.34),0 0 20px rgba(131,77,239,.15),inset 0 0 1px rgba(255,255,255,.5);font-family:inherit}
