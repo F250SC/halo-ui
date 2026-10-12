@@ -495,6 +495,7 @@ class HaloDashboardRuntime {
     this._editPollTimer = null;
     this._editButton = null;
     this._editorModal = null;
+    this._scopedEditorOpen = false;
     this._lastActiveView = null;
 
     this._onConfig = event =>
@@ -578,7 +579,9 @@ class HaloDashboardRuntime {
     this.config = null;
     this._ownerMissingSince = 0;
     this._suspendVisualModules();
-    this._closeRuntimeEditor();
+    // This runtime also hosts the scoped current-view editor. A missing
+    // dashboard-wide owner must not dismiss that editor while it is open.
+    if (!this._scopedEditorOpen) this._closeRuntimeEditor();
   }
 
   _removeEditButton() {
@@ -746,6 +749,7 @@ class HaloDashboardRuntime {
   _closeRuntimeEditor() {
     this._editorModal?.remove();
     this._editorModal = null;
+    this._scopedEditorOpen = false;
   }
 
   _openRuntimeEditor(ownerCard = null) {
@@ -959,6 +963,7 @@ class HaloDashboardRuntime {
 
     document.body.appendChild(backdrop);
     this._editorModal = backdrop;
+    this._scopedEditorOpen = !!ownerCard;
   }
 
   restoreOrDiscover() {
