@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'dist/halo-core.js'
+      - 'dist/halo-ui.js'
       - 'dist/halo-dashboard-runtime.js'
       - 'dist/halo-ui-controller.js'
 
@@ -20,16 +21,26 @@ jobs:
         with:
           fetch-depth: 0
       - name: Verify version and JavaScript syntax
+        shell: bash
         run: |
-          grep -q 'HALO_UI_VERSION = "0.10.48"' dist/halo-core.js
-          grep -q 'HALO UI v0.10.48' dist/halo-ui.js
+          set -euo pipefail
+          version=$(sed -nE 's/^export const HALO_UI_VERSION = "([0-9]+\.[0-9]+\.[0-9]+)";$/\1/p' dist/halo-core.js)
+          if [ -z "$version" ]; then
+            echo "::error::Could not determine HALO_UI_VERSION from dist/halo-core.js"
+            exit 1
+          fi
+          grep -Fq "HALO UI v${version}" dist/halo-ui.js
+          echo "HALO_VERSION=$version" >> "$GITHUB_ENV"
           for file in dist/*.js; do node --input-type=module --check < "$file"; done
       - name: Publish HACS release
         env:
           GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          if gh release view v0.10.48 >/dev/null 2>&1; then
-            echo "Release v0.10.48 already exists."
+          set -euo pipefail
+          tag="v${HALO_VERSION}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists. Nothing to publish."
             exit 0
           fi
-          gh release create v0.10.48 --target "${GITHUB_SHA}" --title "Halo UI v0.10.48" --notes "Responsive native Home Assistant dashboard alignment: choose left, center, right or HA-default independently for desktop, tablet and mobile, with configurable maximum content width. Supports dashboard-wide and current-view installations. Original Home Assistant cards remain unchanged."
+          gh release create "$tag" --target "${GITHUB_SHA}" --title "Halo UI $tag" --generate-notes
