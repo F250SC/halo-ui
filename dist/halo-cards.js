@@ -100,6 +100,42 @@ border:1px solid rgba(189,144,255,.65);box-shadow:0 14px 34px rgba(0,0,0,.34),0 
 @container (max-width:340px){.halo-vacuum .vac-art-wrap{height:70%}.halo-vacuum .vac-text{bottom:10px;left:13px}.halo-vacuum .vac-title{font-size:15px}}
 `;
 
+
+/* Halo Vacuum Signature: photos are pure backgrounds, status overlays remain live. */
+vacuumCss += String.raw`
+.halo-vacuum{
+  background-image:linear-gradient(90deg,rgba(7,8,22,.02) 0%,rgba(12,9,29,.10) 42%,rgba(12,9,31,.70) 100%),var(--vac-photo);
+  background-position:center;
+  background-size:cover;
+  border-color:rgba(181,143,255,.78);
+  box-shadow:0 12px 34px rgba(0,0,0,.34),0 0 24px rgba(160,93,244,.30),inset 0 0 1px rgba(255,255,255,.40);
+  min-height:181px;
+}
+.halo-vacuum .vac-art-wrap{display:none}
+.halo-vacuum .vac-aura{
+ background:radial-gradient(ellipse at 22% 87%,rgba(141,74,239,.18),transparent 60%);
+ opacity:.85;
+}
+.halo-vacuum .vac-text{
+ left:45%;right:16px;bottom:29px;gap:7px;
+ text-shadow:0 2px 12px rgba(0,0,0,.78);
+}
+.halo-vacuum .vac-title{font-size:clamp(17px,1.5vw,22px);font-weight:650}
+.halo-vacuum .vac-status{font-size:12px}
+.halo-vacuum .vac-battery{top:14px;right:14px}
+.halo-vacuum .vac-chevron{bottom:8px;right:14px;font-size:24px}
+.halo-vacuum.is-cleaning:before,.halo-vacuum.is-returning:before,.halo-vacuum.is-docked:before{
+ content:"";position:absolute;inset:-30%;pointer-events:none;
+ background:radial-gradient(ellipse at 31% 65%,rgba(166,103,255,.15),transparent 33%);
+ animation:vac-photo-breathe 4.5s ease-in-out infinite alternate;
+}
+.halo-vacuum.is-cleaning:before{animation-duration:2.8s;background:radial-gradient(ellipse at 26% 77%,rgba(87,156,255,.22),transparent 38%)}
+.halo-vacuum.is-returning:before{animation-duration:3.3s;background:radial-gradient(ellipse at 27% 76%,rgba(185,92,255,.20),transparent 38%)}
+@keyframes vac-photo-breathe{from{opacity:.20;transform:translateX(-10px)}to{opacity:1;transform:translateX(12px)}}
+@container (max-width:350px){.halo-vacuum .vac-text{left:45%;bottom:17px}.halo-vacuum .vac-title{font-size:16px}.halo-vacuum .vac-status{font-size:10px}}
+@media(prefers-reduced-motion:reduce){.halo-vacuum:before{animation:none!important}}
+`;
+
 class HaloCards extends HTMLElement {
   constructor() {
     super();
@@ -204,7 +240,9 @@ class HaloCards extends HTMLElement {
       '</svg>';
     const statusColor=active?"#d8a4ff":docked?"#83dec2":returning?"#bca4ff":"#aba4bf";
     const classes=(active?"is-cleaning ":returning?"is-returning ":paused?"is-paused ":"")+(docked?"is-docked":"");
-    this.shadowRoot.innerHTML='<style>'+cardCss+vacuumCss+'</style><ha-card><article class="halo-vacuum '+classes+'" tabindex="0" role="link" aria-label="'+esc(name)+' – '+esc(label)+'. Staubsauger-Dashboard öffnen">'+
+    const visualState=active?"cleaning":returning?"returning":paused?"paused":docked?"docked":"paused";
+    const sceneUrl="/hacsfiles/halo-ui/halo-vacuum-"+visualState+".webp";
+    this.shadowRoot.innerHTML='<style>'+cardCss+vacuumCss+'</style><ha-card><article class="halo-vacuum '+classes+'" style="--vac-photo:url(&quot;'+sceneUrl+'&quot;)" tabindex="0" role="link" aria-label="'+esc(name)+' – '+esc(label)+'. Staubsauger-Dashboard öffnen">'+
       '<div class="vac-aura"></div><div class="vac-art-wrap">'+svg+'</div><div class="vac-text"><span class="vac-title">'+esc(name)+'</span>'+
       '<span class="vac-status"><i style="background:'+statusColor+'"></i>'+esc(label)+' <span class="vac-sep">·</span> '+esc(level)+'</span></div>'+
       '<div class="vac-battery" style="--bat:'+(battery??0)+'%"><span class="vac-battery-icon">ϟ</span><span>'+esc(level)+'</span></div>'+
