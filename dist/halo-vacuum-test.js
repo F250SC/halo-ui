@@ -67,6 +67,44 @@ ha-card{background:transparent!important;border:0!important;box-shadow:none!impo
 @keyframes hv-route{from{background-position:0 0;opacity:.25}50%{opacity:.95}to{background-position:108px 0;opacity:.35}}
 @media(prefers-reduced-motion:reduce){.fx>span{animation:none!important;opacity:.18!important}}
 `;
+  // Photo-specific animation overrides
+  const photoEffects=String.raw`
+/* v3: effects anchored to the actual four scene compositions, rather than a generic card overlay. */
+.shell{--motion-color:#a970ff}
+.fx{inset:0;z-index:1;isolation:isolate}
+.fx-beam{position:absolute;pointer-events:none;opacity:0}
+.fx-halo{position:absolute;pointer-events:none;opacity:0}
+.fx-dock-light{position:absolute;pointer-events:none;opacity:0}
+.fx-floor{position:absolute;pointer-events:none;opacity:0}
+.docked .fx-dock-light{display:block;left:14%;top:52%;width:26%;height:32%;
+ background:radial-gradient(ellipse at 50% 65%,rgba(193,89,255,.55),rgba(129,40,255,.25) 32%,transparent 72%);
+ filter:blur(9px);mix-blend-mode:screen;animation:hv3-dockglow 2.6s ease-in-out infinite}
+.docked .fx-halo{display:block;left:18%;top:49%;width:22%;height:23%;border-radius:50%;
+ border:1.5px solid rgba(210,119,255,.70);box-shadow:0 0 13px rgba(161,58,255,.5),inset 0 0 13px rgba(161,58,255,.3);
+ animation:hv3-dockring 2.6s ease-out infinite}
+.cleaning .fx-beam{display:block;left:-18%;top:29%;width:72%;height:57%;
+ transform:skewX(-20deg);
+ background:linear-gradient(90deg,transparent 22%,rgba(42,138,255,.03) 40%,rgba(115,190,255,.38) 48%,rgba(195,236,255,.68) 51%,rgba(42,138,255,.11) 59%,transparent 72%);
+ filter:blur(2px);mix-blend-mode:screen;animation:hv3-scan 3.1s linear infinite}
+.cleaning .fx-floor{display:block;left:8%;bottom:5%;width:48%;height:15%;
+ background:radial-gradient(ellipse at 50% 50%,rgba(36,135,255,.53),transparent 69%);
+ filter:blur(9px);animation:hv3-floor 1.8s ease-in-out infinite}
+.returning .fx-floor{display:block;left:12%;bottom:13%;width:58%;height:8px;transform:rotate(-16deg);transform-origin:left center;
+ background:repeating-linear-gradient(90deg,transparent 0 11px,rgba(233,154,255,.98) 11px 23px,transparent 23px 34px);
+ filter:drop-shadow(0 0 5px rgba(217,82,255,.96));animation:hv3-route 1.3s linear infinite}
+.returning .fx-beam{display:block;left:24%;bottom:12%;height:24%;width:47%;
+ background:radial-gradient(ellipse at 50% 100%,rgba(207,89,255,.24),transparent 70%);
+ filter:blur(7px);animation:hv3-floor 2s ease-in-out infinite}
+.paused .fx-halo{display:block;left:23%;bottom:14%;width:35%;height:18%;
+ background:radial-gradient(ellipse at center,rgba(139,80,228,.13),transparent 75%);opacity:.36}
+.docked .fx-spark,.docked .fx-orbit,.cleaning .fx-scan,.returning .fx-path,.returning .fx-orbit{display:none}
+@keyframes hv3-dockglow{0%,100%{opacity:.3;transform:scale(.92)}50%{opacity:.95;transform:scale(1.1)}}
+@keyframes hv3-dockring{0%{opacity:0;transform:scale(.64)}30%{opacity:.85}100%{opacity:0;transform:scale(1.42)}}
+@keyframes hv3-scan{0%{transform:translateX(-42%) skewX(-20deg);opacity:0}15%,80%{opacity:.96}100%{transform:translateX(150%) skewX(-20deg);opacity:0}}
+@keyframes hv3-floor{0%,100%{opacity:.2}50%{opacity:.85}}
+@keyframes hv3-route{0%{background-position:0 0;opacity:.28}50%{opacity:.95}100%{background-position:-136px 0;opacity:.35}}
+@media(prefers-reduced-motion:reduce){.fx-beam,.fx-halo,.fx-dock-light,.fx-floor{animation:none!important;opacity:.3!important}}
+`;
   class HaloVacuumTest extends HTMLElement{
     constructor(){super();this.attachShadow({mode:"open"});this._config={...defaults};this._hass=null;this._demoState=null;}
     static getStubConfig(){return {type:"custom:halo-vacuum-test",entity:defaults.entity,name:"Z60"};}
@@ -117,8 +155,8 @@ ha-card{background:transparent!important;border:0!important;box-shadow:none!impo
       const displayName=safe(cfg.name||vac?.attributes?.friendly_name||"Z60");
       const sub=state==="cleaning"?String(get("sensor.z60_ultra_roller_complete_current_room")||""):"";
       const chargingClass=state==="docked"?(drying?" drying":charging?" charging":""):"";
-      this.shadowRoot.innerHTML='<style>'+css+'</style><ha-card><div class="shell '+scene+chargingClass+'" tabindex="0" role="link" style="--scene:url(&quot;'+safe(sceneUrl)+'&quot;);--dot:'+color+'" aria-label="'+displayName+', '+safe(label)+', '+safe(pct)+'. Dashboard öffnen">'+
-        '<div class="fx fx-'+scene+'"><span class="fx-orbit"></span><span class="fx-scan"></span><span class="fx-path"></span><span class="fx-spark"></span></div>'+
+      this.shadowRoot.innerHTML='<style>'+css+photoEffects+'</style><ha-card><div class="shell '+scene+chargingClass+'" tabindex="0" role="link" style="--scene:url(&quot;'+safe(sceneUrl)+'&quot;);--dot:'+color+'" aria-label="'+displayName+', '+safe(label)+', '+safe(pct)+'. Dashboard öffnen">'+
+        '<div class="fx fx-'+scene+'"><span class="fx-orbit"></span><span class="fx-scan"></span><span class="fx-path"></span><span class="fx-spark"></span><span class="fx-beam"></span><span class="fx-halo"></span><span class="fx-dock-light"></span><span class="fx-floor"></span></div>'+
         (demo?'<div class="demo-toolbar"><button class="demo-next" type="button" title="Nächsten Status anzeigen">◀  '+safe(this._demoState?demoNames[this._demoState]:'LIVE')+'  ▶</button>'+(this._demoState?'<button class="demo-real" type="button" title="Echtzustand anzeigen">Live</button>':'')+'</div>':'')+
         '<div class="battery '+(charging?"charging":"")+'"><svg viewBox="0 0 24 16" aria-hidden="true"><rect x="1" y="2" width="19" height="12" rx="2.3" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="21" y="6" width="2" height="4" rx="1" fill="currentColor"/><rect class="fill" x="3.2" y="4.2" width="'+(battery===null?0:14.5*battery/100)+'" height="7.6" rx="1"/></svg>'+safe(pct)+'</div>'+
         '<div class="details"><div class="title">'+displayName+'</div><div class="state"><span class="dot"></span>'+safe(label)+'</div>'+(sub?'<div class="sub">'+safe(sub)+'</div>':'')+'</div><span class="chevron" aria-hidden="true">›</span></div></ha-card>';
